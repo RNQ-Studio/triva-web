@@ -12,6 +12,7 @@ use App\Http\Requests\Api\V1\RegisterRequest;
 use App\Http\Requests\Api\V1\UpdateProfileRequest;
 use App\Http\Resources\Api\V1\UserResource;
 use App\Models\Asset;
+use App\Models\CustomerConsent;
 use App\Models\User;
 use App\Services\AssetDeletionService;
 use App\Services\AssetUploadService;
@@ -22,6 +23,7 @@ use App\Support\ApiResponse;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -115,7 +117,42 @@ class AuthController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        $user->update($request->validated());
+        $validated = $request->validated();
+
+        DB::transaction(function () use ($user, $validated): void {
+            $profile = collect($validated)->only(['name', 'email', 'phone', 'city'])->all();
+
+            if (array_key_exists('service_consent', $validated)) {
+                $capturedAt = now();
+                $profile['service_consent_at'] = $capturedAt;
+
+                CustomerConsent::query()->create([
+                    'user_id' => $user->getKey(),
+                    'type' => 'service',
+                    'granted' => true,
+                    'policy_version' => '2026-07-26',
+                    'source' => 'mobile',
+                    'captured_at' => $capturedAt,
+                ]);
+            }
+
+            if (array_key_exists('marketing_consent', $validated)) {
+                $capturedAt = now();
+                $profile['marketing_consent'] = (bool) $validated['marketing_consent'];
+                $profile['marketing_consent_updated_at'] = $capturedAt;
+
+                CustomerConsent::query()->create([
+                    'user_id' => $user->getKey(),
+                    'type' => 'marketing',
+                    'granted' => (bool) $validated['marketing_consent'],
+                    'policy_version' => '2026-07-26',
+                    'source' => 'mobile',
+                    'captured_at' => $capturedAt,
+                ]);
+            }
+
+            $user->update($profile);
+        });
 
         return ApiResponse::success(new UserResource($user->refresh()), 'Profile updated');
     }

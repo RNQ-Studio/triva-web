@@ -9,6 +9,7 @@ use App\Services\AssetUploadService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 
 class AssetController extends Controller
 {
@@ -21,12 +22,17 @@ class AssetController extends Controller
         /** @var UploadedFile $file */
         $file = $request->file('file');
 
+        $isAppraisalPhoto = $request->string('type')->toString() === 'appraisal-photo';
+        $retainUntil = $isAppraisalPhoto
+            ? Carbon::now()->addDays(180)
+            : $request->date('retain_until');
+
         $asset = $this->uploadService->upload(
             file: $file,
             type: $request->string('type')->toString(),
             userId: $request->user()?->getKey(),
-            retainUntil: $request->date('retain_until'),
-            isProtected: $request->boolean('is_protected'),
+            retainUntil: $retainUntil,
+            isProtected: $isAppraisalPhoto || $request->boolean('is_protected'),
         );
 
         return ApiResponse::success(new AssetResource($asset), 'Asset uploaded', 201);

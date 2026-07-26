@@ -24,12 +24,16 @@ class UploadAssetRequest extends FormRequest
      */
     public function rules(): array
     {
+        $isAppraisalPhoto = $this->string('type')->toString() === 'appraisal-photo';
+
         return [
             'file' => [
                 'required',
                 'file',
-                'max:51200', // 50 MB dalam kilobyte
-                'mimes:jpeg,jpg,png,webp,gif,svg,mp4,mov,avi,webm,mp3,wav,ogg,m4a,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv',
+                $isAppraisalPhoto ? 'max:10240' : 'max:51200',
+                $isAppraisalPhoto
+                    ? 'mimes:jpeg,jpg,png,heic,heif'
+                    : 'mimes:jpeg,jpg,png,webp,gif,svg,mp4,mov,avi,webm,mp3,wav,ogg,m4a,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv',
             ],
             'type' => ['required', 'string', 'max:255'], // kategori logis file → folder GCS & kolom category
             'retain_until' => ['nullable', 'date'], // tidak diisi → NULL → file permanen

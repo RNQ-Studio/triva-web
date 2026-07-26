@@ -68,6 +68,49 @@ class ProfileTest extends TestCase
         ])->assertUnauthorized();
     }
 
+    public function test_first_login_profile_records_separate_service_and_marketing_consents(): void
+    {
+        $user = User::factory()->create();
+        Passport::actingAs($user);
+
+        $this->putJson('/api/v1/auth/me', [
+            'phone' => '+6281234567890',
+            'city' => 'Surabaya',
+            'service_consent' => true,
+            'marketing_consent' => false,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.phone', '+6281234567890')
+            ->assertJsonPath('data.city', 'Surabaya')
+            ->assertJsonPath('data.profile_completed', true)
+            ->assertJsonPath('data.marketing_consent', false);
+
+        $this->assertDatabaseHas('customer_consents', [
+            'user_id' => $user->getKey(),
+            'type' => 'service',
+            'granted' => true,
+        ]);
+        $this->assertDatabaseHas('customer_consents', [
+            'user_id' => $user->getKey(),
+            'type' => 'marketing',
+            'granted' => false,
+        ]);
+    }
+
+    public function test_first_login_profile_requires_valid_phone_and_service_consent(): void
+    {
+        $user = User::factory()->create();
+        Passport::actingAs($user);
+
+        $this->putJson('/api/v1/auth/me', [
+            'phone' => 'not-a-phone',
+            'city' => 'Surabaya',
+            'service_consent' => false,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['phone', 'service_consent']);
+    }
+
     public function test_authenticated_user_can_change_password(): void
     {
         $user = User::factory()->create(['password' => 'old-password']);

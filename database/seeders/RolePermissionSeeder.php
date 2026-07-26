@@ -17,7 +17,19 @@ class RolePermissionSeeder extends Seeder
     private const GUARD = 'web';
 
     /** @var list<string> */
-    private const RESOURCES = ['users', 'roles', 'categories', 'quotes', 'app_configs', 'app_versions', 'notifications', 'articles', 'tags'];
+    private const RESOURCES = [
+        'users',
+        'roles',
+        'categories',
+        'quotes',
+        'app_configs',
+        'app_versions',
+        'notifications',
+        'articles',
+        'tags',
+        'vehicles',
+        'appraisals',
+    ];
 
     /** @var list<string> */
     private const ABILITIES = ['viewAny', 'view', 'create', 'update', 'delete'];
@@ -50,6 +62,8 @@ class RolePermissionSeeder extends Seeder
             'notifications.viewAny', 'notifications.view', 'notifications.create', 'notifications.update', 'notifications.delete',
             'articles.viewAny', 'articles.view', 'articles.create', 'articles.update', 'articles.delete',
             'tags.viewAny', 'tags.view', 'tags.create', 'tags.update', 'tags.delete',
+            'vehicles.viewAny', 'vehicles.view', 'vehicles.update',
+            'appraisals.viewAny', 'appraisals.view', 'appraisals.update',
         ]);
 
         $staff->syncPermissions([
@@ -57,6 +71,8 @@ class RolePermissionSeeder extends Seeder
             'quotes.viewAny', 'quotes.view', 'quotes.create', 'quotes.update',
             'articles.viewAny', 'articles.view', 'articles.create', 'articles.update',
             'tags.viewAny', 'tags.view', 'tags.create', 'tags.update',
+            'vehicles.viewAny', 'vehicles.view',
+            'appraisals.viewAny', 'appraisals.view', 'appraisals.update',
         ]);
     }
 }

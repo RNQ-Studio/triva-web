@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\UserExcelController;
 use App\Http\Controllers\Api\V1\AppController;
+use App\Http\Controllers\Api\V1\AppraisalController;
 use App\Http\Controllers\Api\V1\ArticleController;
 use App\Http\Controllers\Api\V1\AssetController;
 use App\Http\Controllers\Api\V1\AuthController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Api\V1\OtpController;
 use App\Http\Controllers\Api\V1\PasswordResetController;
 use App\Http\Controllers\Api\V1\QuoteController;
 use App\Http\Controllers\Api\V1\TagController;
+use App\Http\Controllers\Api\V1\VehicleController;
 use App\Http\Controllers\Webhook\GithubDeployWebhookController;
 use App\Support\ApiResponse;
 use Illuminate\Support\Facades\Route;
@@ -83,6 +85,21 @@ Route::prefix('v1')->group(function (): void {
 
     Route::middleware(['auth:api', 'check.maintenance'])->group(function (): void {
         Route::post('assets/upload', [AssetController::class, 'upload'])->middleware('throttle:30,1');
+
+        Route::apiResource('vehicles', VehicleController::class)
+            ->only(['index', 'store', 'show', 'update']);
+
+        Route::get('appraisals', [AppraisalController::class, 'index']);
+        Route::post('appraisals', [AppraisalController::class, 'store']);
+        Route::get('appraisals/{appraisal}', [AppraisalController::class, 'show']);
+        Route::put('appraisals/{appraisal}/vehicle-condition', [AppraisalController::class, 'updateCondition']);
+        Route::post('appraisals/{appraisal}/photos', [AppraisalController::class, 'attachPhotos']);
+        Route::post('appraisals/{appraisal}/submit', [AppraisalController::class, 'submit'])
+            ->middleware('throttle:10,1');
+        Route::post('appraisals/{appraisal}/resubmit', [AppraisalController::class, 'resubmit'])
+            ->middleware('throttle:10,1');
+        Route::post('appraisals/{appraisal}/decision', [AppraisalController::class, 'decision']);
+        Route::post('appraisals/{appraisal}/schedule-inspection', [AppraisalController::class, 'scheduleInspection']);
 
         Route::apiResource('categories', CategoryController::class);
         Route::apiResource('articles', ArticleController::class);

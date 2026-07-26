@@ -27,14 +27,32 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string $email
  * @property string|null $google_sub
  * @property string|null $phone
+ * @property string|null $city
  * @property string|null $avatar
+ * @property Carbon|null $service_consent_at
+ * @property bool $marketing_consent
+ * @property Carbon|null $marketing_consent_updated_at
  * @property bool $is_active
  * @property Carbon|null $email_verified_at
  * @property Carbon|null $phone_verified_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'email', 'google_sub', 'password', 'is_active', 'avatar', 'phone', 'email_verified_at', 'phone_verified_at'])]
+#[Fillable([
+    'name',
+    'email',
+    'google_sub',
+    'password',
+    'is_active',
+    'avatar',
+    'phone',
+    'city',
+    'service_consent_at',
+    'marketing_consent',
+    'marketing_consent_updated_at',
+    'email_verified_at',
+    'phone_verified_at',
+])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser, MustVerifyEmail, OAuthenticatable
 {
@@ -79,6 +97,24 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail, OAu
         return $this->hasMany(Notification::class);
     }
 
+    /** @return HasMany<Vehicle, $this> */
+    public function vehicles(): HasMany
+    {
+        return $this->hasMany(Vehicle::class);
+    }
+
+    /** @return HasMany<Appraisal, $this> */
+    public function appraisals(): HasMany
+    {
+        return $this->hasMany(Appraisal::class);
+    }
+
+    /** @return HasMany<CustomerConsent, $this> */
+    public function consents(): HasMany
+    {
+        return $this->hasMany(CustomerConsent::class);
+    }
+
     /** @return BelongsTo<Asset, $this> */
     public function avatarAsset(): BelongsTo
     {
@@ -95,6 +131,9 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail, OAu
         return [
             'email_verified_at' => 'datetime',
             'phone_verified_at' => 'datetime',
+            'service_consent_at' => 'datetime',
+            'marketing_consent' => 'boolean',
+            'marketing_consent_updated_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
         ];

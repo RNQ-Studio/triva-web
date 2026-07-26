@@ -34,7 +34,13 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'phone' => $this->phone,
+            'city' => $this->city,
             'avatar_url' => $avatarUrl,
+            'profile_completed' => filled($this->phone)
+                && filled($this->city)
+                && $this->service_consent_at !== null,
+            'service_consent_at' => $this->service_consent_at?->toIso8601String(),
+            'marketing_consent' => $this->marketing_consent,
             'is_active' => $this->is_active,
             'roles' => $this->getRoleNames()->values(),
             'permissions' => $this->getAllPermissions()->pluck('name')->values(),

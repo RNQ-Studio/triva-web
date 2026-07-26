@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Throwable;
 
 /**
  * @property string $id
@@ -167,6 +168,23 @@ class Asset extends Model
         }
 
         return Storage::disk($this->storage_type->disk())->url($this->path);
+    }
+
+    public function getTemporaryUrl(): ?string
+    {
+        if ($this->status === AssetStatus::HardDeleted) {
+            return null;
+        }
+
+        try {
+            $disk = Storage::disk($this->storage_type->disk());
+
+            return $this->isGCS()
+                ? $disk->temporaryUrl($this->path, now()->addMinutes(10))
+                : $disk->url($this->path);
+        } catch (Throwable) {
+            return $this->is_protected ? null : $this->getPublicUrl();
+        }
     }
 
     /**

@@ -64,7 +64,7 @@ class AssetUploadService
                 'user_id' => $userId,
                 'storage_type' => StorageType::Gcs,
                 'path' => $path,
-                'url' => $disk->url($path),
+                'url' => $isProtected ? null : $disk->url($path),
                 'original_filename' => $file->getClientOriginalName(),
                 'extension' => $extension,
                 'mime_type' => $file->getMimeType() ?? $file->getClientMimeType(),
