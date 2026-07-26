@@ -14,8 +14,6 @@ use Throwable;
 
 class AssetUploadService
 {
-    private const DISK = 'gcs';
-
     public function __construct(
         private readonly AssetMetadataExtractor $metadataExtractor,
     ) {}
@@ -50,7 +48,14 @@ class AssetUploadService
         // Ekstrak metadata SEBELUM upload — setelah store(), file sementara sudah dipindah.
         $metadata = $this->metadataExtractor->extract($file);
 
-        $disk = Storage::disk(self::DISK);
+        $diskName = config('filesystems.asset_upload_disk', 'gcs');
+        $storageType = match ($diskName) {
+            'gcs' => StorageType::Gcs,
+            'local' => StorageType::PrivateLocal,
+            'public' => StorageType::Local,
+            default => throw new RuntimeException('Unsupported asset upload disk.'),
+        };
+        $disk = Storage::disk($diskName);
 
         // Disk 'gcs' dikonfigurasi 'throw' => true, jadi kegagalan upload melempar exception
         // (tertangkap handler global) dan kita tidak pernah sampai membuat record DB.
@@ -62,7 +67,7 @@ class AssetUploadService
         try {
             $asset = new Asset([
                 'user_id' => $userId,
-                'storage_type' => StorageType::Gcs,
+                'storage_type' => $storageType,
                 'path' => $path,
                 'url' => $isProtected ? null : $disk->url($path),
                 'original_filename' => $file->getClientOriginalName(),

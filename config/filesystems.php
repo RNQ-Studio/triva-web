@@ -15,6 +15,8 @@ return [
 
     'default' => env('FILESYSTEM_DISK', 'local'),
 
+    'asset_upload_disk' => env('ASSET_UPLOAD_DISK', 'gcs'),
+
     /*
     |--------------------------------------------------------------------------
     | Filesystem Disks

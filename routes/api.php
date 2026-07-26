@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\QuoteController;
 use App\Http\Controllers\Api\V1\RegionController;
 use App\Http\Controllers\Api\V1\TagController;
 use App\Http\Controllers\Api\V1\VehicleController;
+use App\Http\Controllers\Api\V1\VehicleMakeController;
 use App\Http\Controllers\Webhook\GithubDeployWebhookController;
 use App\Support\ApiResponse;
 use Illuminate\Support\Facades\Route;
@@ -86,6 +87,8 @@ Route::prefix('v1')->group(function (): void {
 
     Route::middleware(['auth:api', 'check.maintenance'])->group(function (): void {
         Route::get('regions/provinces', [RegionController::class, 'provinces'])
+            ->middleware('throttle:60,1');
+        Route::get('vehicle-makes', [VehicleMakeController::class, 'index'])
             ->middleware('throttle:60,1');
 
         Route::post('assets/upload', [AssetController::class, 'upload'])->middleware('throttle:30,1');

@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 /**
  * @property string $id
  * @property int $user_id
+ * @property int|null $vehicle_make_id
  * @property string $make
  * @property string $model
  * @property string $variant
@@ -22,6 +23,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int $mileage
  * @property string $color
  * @property string $license_plate
+ * @property int|null $province_id
+ * @property int|null $city_id
  * @property string $city
  */
 class Vehicle extends Model
@@ -30,6 +33,7 @@ class Vehicle extends Model
     use HasFactory, HasUuids, SoftDeletes;
 
     protected $fillable = [
+        'vehicle_make_id',
         'make',
         'model',
         'variant',
@@ -39,6 +43,8 @@ class Vehicle extends Model
         'mileage',
         'color',
         'license_plate',
+        'province_id',
+        'city_id',
         'city',
     ];
 
@@ -47,6 +53,9 @@ class Vehicle extends Model
         return [
             'year' => 'integer',
             'mileage' => 'integer',
+            'vehicle_make_id' => 'integer',
+            'province_id' => 'integer',
+            'city_id' => 'integer',
         ];
     }
 
@@ -54,6 +63,24 @@ class Vehicle extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** @return BelongsTo<VehicleMake, $this> */
+    public function vehicleMake(): BelongsTo
+    {
+        return $this->belongsTo(VehicleMake::class);
+    }
+
+    /** @return BelongsTo<Region, $this> */
+    public function province(): BelongsTo
+    {
+        return $this->belongsTo(Region::class, 'province_id');
+    }
+
+    /** @return BelongsTo<Region, $this> */
+    public function cityRegion(): BelongsTo
+    {
+        return $this->belongsTo(Region::class, 'city_id');
     }
 
     /** @return HasMany<Appraisal, $this> */

@@ -153,6 +153,11 @@ class Asset extends Model
         return $this->storage_type === StorageType::Gcs;
     }
 
+    public function isPrivateLocal(): bool
+    {
+        return $this->storage_type === StorageType::PrivateLocal;
+    }
+
     /**
      * URL publik file. Pakai url yang tersimpan bila ada (mis. CDN/GCS signed URL),
      * jika tidak, bangun dari disk yang sesuai via Storage facade.
@@ -167,6 +172,10 @@ class Asset extends Model
             return $this->url;
         }
 
+        if ($this->isPrivateLocal()) {
+            return $this->getTemporaryUrl();
+        }
+
         return Storage::disk($this->storage_type->disk())->url($this->path);
     }
 
@@ -179,7 +188,7 @@ class Asset extends Model
         try {
             $disk = Storage::disk($this->storage_type->disk());
 
-            return $this->isGCS()
+            return $this->isGCS() || $this->isPrivateLocal()
                 ? $disk->temporaryUrl($this->path, now()->addMinutes(10))
                 : $disk->url($this->path);
         } catch (Throwable) {

@@ -31,7 +31,7 @@ class VehicleController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        $vehicle = new Vehicle($request->validated());
+        $vehicle = new Vehicle($request->vehicleData());
         $vehicle->user()->associate($user);
         $vehicle->save();
 
@@ -47,7 +47,7 @@ class VehicleController extends Controller
 
     public function update(UpdateVehicleRequest $request, Vehicle $vehicle): JsonResponse
     {
-        $vehicle->update($request->validated());
+        $vehicle->update($request->vehicleData());
 
         return ApiResponse::success(new VehicleResource($vehicle->refresh()), 'Kendaraan berhasil diperbarui.');
     }

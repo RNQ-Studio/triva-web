@@ -88,6 +88,34 @@ class AssetUploadTest extends TestCase
         $this->assertNull($response->json('data.retain_until'));
     }
 
+    public function test_appraisal_photo_can_use_private_local_storage_without_cloud_billing(): void
+    {
+        Storage::forgetDisk('local');
+        config(['filesystems.asset_upload_disk' => 'local']);
+
+        $file = UploadedFile::fake()->image('front.jpg', 1280, 720);
+
+        $response = $this->withToken($this->accessToken)
+            ->postJson('/api/v1/assets/upload', [
+                'file' => $file,
+                'type' => 'appraisal-photo',
+                'is_protected' => true,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.public_url', null)
+            ->assertJsonPath(
+                'data.temporary_url',
+                fn (mixed $url): bool => is_string($url)
+                    && str_contains($url, '/storage/'),
+            );
+
+        $asset = Asset::query()->findOrFail($response->json('data.id'));
+        $this->assertSame('private_local', $asset->storage_type->value);
+        $this->assertTrue($asset->is_protected);
+        Storage::disk('local')->assertExists($asset->path);
+        Storage::disk('local')->delete($asset->path);
+    }
+
     public function test_upload_requires_authentication(): void
     {
         $file = UploadedFile::fake()->image('photo.jpg');
