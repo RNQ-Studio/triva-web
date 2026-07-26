@@ -25,6 +25,7 @@ use Spatie\Permission\Traits\HasRoles;
 /**
  * @property string $name
  * @property string $email
+ * @property string|null $google_sub
  * @property string|null $phone
  * @property string|null $avatar
  * @property bool $is_active
@@ -33,7 +34,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'email', 'password', 'is_active', 'avatar', 'phone', 'phone_verified_at'])]
+#[Fillable(['name', 'email', 'google_sub', 'password', 'is_active', 'avatar', 'phone', 'email_verified_at', 'phone_verified_at'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser, MustVerifyEmail, OAuthenticatable
 {

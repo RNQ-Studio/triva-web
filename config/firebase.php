@@ -2,6 +2,12 @@
 
 declare(strict_types=1);
 
+$firebaseCredentials = env('FIREBASE_CREDENTIALS', env('GOOGLE_APPLICATION_CREDENTIALS'));
+
+if (is_string($firebaseCredentials) && ! str_starts_with($firebaseCredentials, '{')) {
+    $firebaseCredentials = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $firebaseCredentials);
+}
+
 return [
     /*
      * ------------------------------------------------------------------------
@@ -50,7 +56,7 @@ return [
              *
              */
 
-            'credentials' => env('FIREBASE_CREDENTIALS', env('GOOGLE_APPLICATION_CREDENTIALS')),
+            'credentials' => $firebaseCredentials,
 
             /*
              * ------------------------------------------------------------------------

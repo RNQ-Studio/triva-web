@@ -51,18 +51,24 @@ class AuthService
      *
      * @throws AuthenticationException
      */
-    public function issueTokenForUser(User $user): array
+    public function issueTokenForUser(User $user, array $deviceInfo = []): array
     {
         $tempToken = 'otp_token_'.Str::random(40);
 
         // Store in cache for 30 seconds
         cache()->put('otp_login_token_'.$user->getKey(), $tempToken, 30);
 
-        return $this->issueToken([
+        $tokens = $this->issueToken([
             'grant_type' => 'password',
             'username' => $user->email,
             'password' => $tempToken,
         ]);
+
+        if (isset($deviceInfo['device_id'], $deviceInfo['platform'])) {
+            $this->upsertDevice($user, $deviceInfo);
+        }
+
+        return $tokens;
     }
 
     /**

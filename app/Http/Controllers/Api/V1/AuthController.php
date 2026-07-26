@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\AvatarRequest;
 use App\Http\Requests\Api\V1\ChangePasswordRequest;
+use App\Http\Requests\Api\V1\GoogleLoginRequest;
 use App\Http\Requests\Api\V1\LoginRequest;
 use App\Http\Requests\Api\V1\RefreshTokenRequest;
 use App\Http\Requests\Api\V1\RegisterRequest;
@@ -15,6 +16,7 @@ use App\Models\User;
 use App\Services\AssetDeletionService;
 use App\Services\AssetUploadService;
 use App\Services\Auth\AuthService;
+use App\Services\Auth\GoogleAuthService;
 use App\Services\FileUploadService;
 use App\Support\ApiResponse;
 use Illuminate\Auth\Events\Registered;
@@ -28,6 +30,7 @@ class AuthController extends Controller
 {
     public function __construct(
         private readonly AuthService $authService,
+        private readonly GoogleAuthService $googleAuthService,
         private readonly FileUploadService $fileUploadService,
         private readonly AssetUploadService $assetUploadService,
         private readonly AssetDeletionService $assetDeletionService,
@@ -72,6 +75,20 @@ class AuthController extends Controller
         $tokens['email_verified'] = $user?->hasVerifiedEmail() ?? false;
 
         return ApiResponse::success($tokens, 'Login successful');
+    }
+
+    /**
+     * @unauthenticated
+     */
+    public function google(GoogleLoginRequest $request): JsonResponse
+    {
+        $tokens = $this->googleAuthService->login(
+            $request->string('id_token')->toString(),
+            $request->only(['device_id', 'platform', 'os_version', 'app_version', 'device_name', 'push_token']),
+        );
+        $tokens['email_verified'] = true;
+
+        return ApiResponse::success($tokens, 'Google login successful');
     }
 
     /**

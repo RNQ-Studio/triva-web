@@ -22,6 +22,8 @@ class UserResource extends JsonResource
         if ($this->avatar !== null) {
             if (Str::isUuid($this->avatar)) {
                 $avatarUrl = $this->avatarAsset?->getPublicUrl();
+            } elseif (Str::startsWith($this->avatar, 'https://')) {
+                $avatarUrl = $this->avatar;
             } else {
                 $avatarUrl = app(FileUploadService::class)->url($this->avatar);
             }
