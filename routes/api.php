@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OtpController;
 use App\Http\Controllers\Api\V1\PasswordResetController;
 use App\Http\Controllers\Api\V1\QuoteController;
+use App\Http\Controllers\Api\V1\RegionController;
 use App\Http\Controllers\Api\V1\TagController;
 use App\Http\Controllers\Api\V1\VehicleController;
 use App\Http\Controllers\Webhook\GithubDeployWebhookController;
@@ -84,6 +85,9 @@ Route::prefix('v1')->group(function (): void {
     Route::apiResource('quotes', QuoteController::class);
 
     Route::middleware(['auth:api', 'check.maintenance'])->group(function (): void {
+        Route::get('regions/provinces', [RegionController::class, 'provinces'])
+            ->middleware('throttle:60,1');
+
         Route::post('assets/upload', [AssetController::class, 'upload'])->middleware('throttle:30,1');
 
         Route::apiResource('vehicles', VehicleController::class)

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\Region;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -111,6 +112,57 @@ class ProfileTest extends TestCase
             ->assertJsonValidationErrors(['phone', 'service_consent']);
     }
 
+    public function test_first_login_profile_uses_city_from_selected_indonesian_province(): void
+    {
+        $user = User::factory()->create();
+        [$province, $city] = $this->indonesianProvinceAndCity();
+        Passport::actingAs($user);
+
+        $this->putJson('/api/v1/auth/me', [
+            'phone' => '+6281234567890',
+            'province_id' => $province->getKey(),
+            'city_id' => $city->getKey(),
+            'service_consent' => true,
+            'marketing_consent' => false,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.city', 'KOTA SURABAYA')
+            ->assertJsonPath('data.profile_completed', true);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->getKey(),
+            'city' => 'KOTA SURABAYA',
+        ]);
+    }
+
+    public function test_first_login_profile_rejects_city_from_another_province(): void
+    {
+        $user = User::factory()->create();
+        [$province] = $this->indonesianProvinceAndCity();
+        $otherProvince = Region::query()->create([
+            'parent_id' => $province->parent_id,
+            'type' => 'state',
+            'code' => '34',
+            'name' => 'DAERAH ISTIMEWA YOGYAKARTA',
+        ]);
+        $otherCity = Region::query()->create([
+            'parent_id' => $otherProvince->getKey(),
+            'type' => 'city',
+            'code' => '3471',
+            'name' => 'KOTA YOGYAKARTA',
+        ]);
+        Passport::actingAs($user);
+
+        $this->putJson('/api/v1/auth/me', [
+            'phone' => '+6281234567890',
+            'province_id' => $province->getKey(),
+            'city_id' => $otherCity->getKey(),
+            'service_consent' => true,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['city_id']);
+    }
+
     public function test_authenticated_user_can_change_password(): void
     {
         $user = User::factory()->create(['password' => 'old-password']);
@@ -141,5 +193,31 @@ class ProfileTest extends TestCase
             ->assertJsonStructure(['errors' => ['current_password']]);
 
         $this->assertTrue(Hash::check('old-password', $user->refresh()->password));
+    }
+
+    /**
+     * @return array{Region, Region}
+     */
+    private function indonesianProvinceAndCity(): array
+    {
+        $indonesia = Region::query()->create([
+            'type' => 'country',
+            'code' => 'ID',
+            'name' => 'Indonesia',
+        ]);
+        $province = Region::query()->create([
+            'parent_id' => $indonesia->getKey(),
+            'type' => 'state',
+            'code' => '35',
+            'name' => 'JAWA TIMUR',
+        ]);
+        $city = Region::query()->create([
+            'parent_id' => $province->getKey(),
+            'type' => 'city',
+            'code' => '3578',
+            'name' => 'KOTA SURABAYA',
+        ]);
+
+        return [$province, $city];
     }
 }

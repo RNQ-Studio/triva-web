@@ -35,6 +35,11 @@ class Region extends Model
         return $this->hasMany(Region::class, 'parent_id');
     }
 
+    public function childCities(): HasMany
+    {
+        return $this->children()->where('type', 'city');
+    }
+
     public function scopeCountries(Builder $query): Builder
     {
         return $query->where('type', 'country');

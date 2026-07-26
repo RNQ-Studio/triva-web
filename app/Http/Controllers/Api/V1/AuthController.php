@@ -13,6 +13,7 @@ use App\Http\Requests\Api\V1\UpdateProfileRequest;
 use App\Http\Resources\Api\V1\UserResource;
 use App\Models\Asset;
 use App\Models\CustomerConsent;
+use App\Models\Region;
 use App\Models\User;
 use App\Services\AssetDeletionService;
 use App\Services\AssetUploadService;
@@ -121,6 +122,13 @@ class AuthController extends Controller
 
         DB::transaction(function () use ($user, $validated): void {
             $profile = collect($validated)->only(['name', 'email', 'phone', 'city'])->all();
+
+            if (array_key_exists('city_id', $validated)) {
+                $profile['city'] = Region::query()
+                    ->where('type', 'city')
+                    ->findOrFail($validated['city_id'])
+                    ->name;
+            }
 
             if (array_key_exists('service_consent', $validated)) {
                 $capturedAt = now();
