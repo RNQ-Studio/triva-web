@@ -11,6 +11,7 @@ Before deploying the application, ensure the host server is configured with the 
 - **Operating System:** Ubuntu 22.04 LTS or 24.04 LTS (recommended)
 - **Web Server:** Nginx (v1.20+)
 - **PHP:** Version 8.3 (with `cli`, `fpm`, `pgsql`, `mbstring`, `xml`, `curl`, `zip`, `bcmath`, `intl`, `gd`, `opcache`)
+- **Node.js:** a supported system-wide release (required to build Vite assets during webhook deploys)
 - **Database:** PostgreSQL v15+ (with connection credentials and empty schema)
 - **Cache/Queue Broker:** Redis v7+
 - **Process Manager:** Supervisor (for maintaining active queue workers)
@@ -115,9 +116,48 @@ server {
 
 ---
 
-## 4. 10-Step Deployment Pipeline
+## 4. Automatic Deployment from GitHub Webhooks (without GitHub Actions)
 
-Implement this standard zero-downtime or minimal-downtime deployment script in your CI/CD tool (e.g., GitHub Actions, Deployer, or custom shell scripts):
+Every signed GitHub `push` event to `main` can deploy this application directly on the server. This does not consume GitHub Actions minutes: GitHub only sends an HTTP webhook and the server performs the deployment locally.
+
+The endpoint is `POST https://your-domain.com/api/deploy/github`. It accepts only `push` events for `refs/heads/main`, verifies GitHub's `X-Hub-Signature-256` HMAC signature, and then starts `scripts/deploy-on-push.sh` in the background. Deployments are serialized with `flock`; each run fetches `origin/main`, fast-forward merges it, installs dependencies, builds Vite assets, runs migrations, refreshes Laravel caches, and restarts queue workers. Output is written to `storage/logs/deploy.log`.
+
+### One-time server setup
+
+1. Ensure the application directory is owned by the same user used by PHP-FPM (normally `www-data`). That user must be able to run `git`, `php`, `composer`, and `npm` from its normal `PATH`. The PHP-FPM configuration must not disable the `exec` function, which is used only to start the fixed local deploy script. Install a supported system-wide Node.js release because Vite is built during deploy.
+2. If the repository is private, give that server user read access to the repository. A read-only GitHub deploy key is recommended; configure `origin` to use the corresponding SSH URL. Confirm this works as the PHP-FPM user with `sudo -u www-data git -C /var/www/triva-web fetch origin main`.
+3. Create a random secret and put it in the server's `.env` (never commit it):
+
+   ```bash
+   openssl rand -hex 32
+   ```
+
+   ```ini
+   GITHUB_WEBHOOK_SECRET=paste-the-generated-value-here
+   ```
+
+4. After this feature's code is present on the server, build its Laravel caches once. This is required so an existing route cache learns the webhook endpoint:
+
+   ```bash
+   chmod 755 scripts/deploy-on-push.sh
+   php artisan optimize:clear
+   php artisan config:cache
+   php artisan route:cache
+   ```
+5. In GitHub, open **Settings → Webhooks → Add webhook** and configure:
+   - **Payload URL:** `https://your-domain.com/api/deploy/github`
+   - **Content type:** `application/json`
+   - **Secret:** the exact `GITHUB_WEBHOOK_SECRET` value
+   - **Events:** select **Just the push event**
+   - **Active:** enabled
+
+The first deployment that introduces this feature must still be done once manually (or by placing these files on the server), because the webhook endpoint and script must exist before GitHub can invoke them. After that, pushes to `main` require no manual `git pull` or `php artisan migrate`.
+
+The deploy script refuses to overwrite tracked, uncommitted server changes and leaves the existing application online again if a deployment fails. Investigate a failed deployment with `tail -n 200 storage/logs/deploy.log`.
+
+## 5. Manual Deployment Reference
+
+Use the following only when a manual recovery is necessary. Normal deploys are performed by the signed webhook above.
 
 ### Step 1: Put Application in Maintenance Mode
 ```bash
@@ -177,7 +217,7 @@ php artisan up
 
 ---
 
-## 5. Supervisor Queue Worker Configuration
+## 6. Supervisor Queue Worker Configuration
 
 To guarantee that background jobs (like push notifications, email verifications, and audit logging tasks) are executed reliably without blocking API processes, configure a Supervisor daemon on the server.
 
@@ -207,7 +247,7 @@ sudo supervisorctl start laravel-worker:*
 
 ---
 
-## 6. Secure File System Permissions
+## 7. Secure File System Permissions
 
 Set proper ownership and write permissions so that Nginx/PHP-FPM can serve files while keeping configurations secure:
 
@@ -217,4 +257,7 @@ sudo find /var/www/laravel-starter -type f -exec chmod 644 {} \;
 sudo find /var/www/laravel-starter -type d -exec chmod 755 {} \;
 sudo chmod -R 775 /var/www/laravel-starter/storage
 sudo chmod -R 775 /var/www/laravel-starter/bootstrap/cache
+# Passport rejects private keys that are group/world writable.
+sudo chmod 600 /var/www/laravel-starter/storage/oauth-private.key
+sudo chmod 600 /var/www/laravel-starter/storage/oauth-public.key
 ```

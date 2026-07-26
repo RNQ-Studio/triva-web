@@ -39,18 +39,29 @@ class AppConfig extends Model
 
     public static function get(string $key, mixed $default = null): mixed
     {
-        /** @var AppConfig|null $config */
+        /** @var array{value: string|null, type: string}|null $config */
         $config = Cache::remember(
             "app_config:{$key}",
             now()->addHour(),
-            fn () => static::query()->where('key', $key)->first()
+            function () use ($key): ?array {
+                $record = static::query()->where('key', $key)->first(['value', 'type']);
+
+                if ($record === null) {
+                    return null;
+                }
+
+                return [
+                    'value' => $record->value,
+                    'type' => $record->type->value,
+                ];
+            }
         );
 
         if ($config === null) {
             return $default;
         }
 
-        return $config->castValue();
+        return self::castStoredValue($config['value'], AppConfigType::from($config['type']));
     }
 
     public static function set(string $key, mixed $value): void
@@ -82,11 +93,16 @@ class AppConfig extends Model
 
     private function castValue(): mixed
     {
-        return match ($this->type) {
-            AppConfigType::Boolean => filter_var($this->value, FILTER_VALIDATE_BOOLEAN),
-            AppConfigType::Integer => (int) $this->value,
-            AppConfigType::Json => json_decode((string) $this->value, true),
-            default => $this->value,
+        return self::castStoredValue($this->value, $this->type);
+    }
+
+    private static function castStoredValue(?string $value, AppConfigType $type): mixed
+    {
+        return match ($type) {
+            AppConfigType::Boolean => filter_var($value, FILTER_VALIDATE_BOOLEAN),
+            AppConfigType::Integer => (int) $value,
+            AppConfigType::Json => json_decode((string) $value, true),
+            default => $value,
         };
     }
 }

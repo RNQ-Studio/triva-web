@@ -26,6 +26,7 @@
 /storage/app/regions/**/*.json
 /storage/app/regions/**/*.gz
 /storage/app/regions/**/*.zip
+/storage/framework/deploy.lock
 /storage/pail
 /vendor
 _ide_helper.php

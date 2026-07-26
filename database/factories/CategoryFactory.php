@@ -16,12 +16,12 @@ class CategoryFactory extends Factory
      */
     public function definition(): array
     {
-        $name = fake()->unique()->words(2, true);
+        $name = $this->faker->unique()->words(2, true);
 
         return [
             'name' => Str::title($name),
             'slug' => Str::slug($name),
-            'description' => fake()->optional()->sentence(),
+            'description' => $this->faker->optional()->sentence(),
             'is_active' => true,
         ];
     }
