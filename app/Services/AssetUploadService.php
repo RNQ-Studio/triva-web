@@ -19,9 +19,9 @@ class AssetUploadService
     ) {}
 
     /**
-     * Upload file langsung ke GCS lalu simpan record asset.
-     * Atomic: bila upload GCS gagal, tidak ada record DB yang dibuat;
-     * bila penyimpanan DB gagal setelah upload, file GCS yang sudah terupload dihapus kembali.
+     * Upload file ke disk terkonfigurasi lalu simpan record asset.
+     * Atomic: bila upload gagal, tidak ada record DB yang dibuat;
+     * bila penyimpanan DB gagal, file yang sudah terupload dihapus kembali.
      */
     public function upload(
         UploadedFile $file,
@@ -48,17 +48,20 @@ class AssetUploadService
         // Ekstrak metadata SEBELUM upload — setelah store(), file sementara sudah dipindah.
         $metadata = $this->metadataExtractor->extract($file);
 
-        $diskName = config('filesystems.asset_upload_disk', 'gcs');
+        $configuredDisk = config('filesystems.asset_upload_disk', 'gcs');
+        $diskName = match ($configuredDisk) {
+            'gcs' => 'gcs',
+            'local', 'public' => $isProtected ? 'local' : 'public',
+            default => throw new RuntimeException('Unsupported asset upload disk.'),
+        };
         $storageType = match ($diskName) {
             'gcs' => StorageType::Gcs,
             'local' => StorageType::PrivateLocal,
             'public' => StorageType::Local,
-            default => throw new RuntimeException('Unsupported asset upload disk.'),
         };
         $disk = Storage::disk($diskName);
 
-        // Disk 'gcs' dikonfigurasi 'throw' => true, jadi kegagalan upload melempar exception
-        // (tertangkap handler global) dan kita tidak pernah sampai membuat record DB.
+        // Kegagalan upload berhenti sebelum record database dibuat.
         $stored = $disk->putFileAs($folder, $file, $filename);
         if ($stored === false) {
             throw new RuntimeException('Failed to upload file to Google Cloud Storage.');
@@ -89,7 +92,7 @@ class AssetUploadService
 
             return $asset;
         } catch (Throwable $e) {
-            // Kompensasi: bersihkan file yatim di GCS agar tidak ada orphan tanpa record.
+            // Kompensasi: bersihkan file yatim agar tidak ada orphan tanpa record.
             $disk->delete($path);
 
             throw $e;

@@ -116,6 +116,28 @@ class AssetUploadTest extends TestCase
         Storage::disk('local')->delete($asset->path);
     }
 
+    public function test_unprotected_asset_uses_public_disk_when_local_fallback_is_active(): void
+    {
+        Storage::fake('public');
+        config(['filesystems.asset_upload_disk' => 'local']);
+
+        $response = $this->withToken($this->accessToken)
+            ->postJson('/api/v1/assets/upload', [
+                'file' => UploadedFile::fake()->image('avatar.jpg'),
+                'type' => 'user',
+            ])
+            ->assertCreated()
+            ->assertJsonPath(
+                'data.public_url',
+                fn (mixed $url): bool => is_string($url)
+                    && str_contains($url, '/storage/'),
+            );
+
+        $asset = Asset::query()->findOrFail($response->json('data.id'));
+        $this->assertSame('local', $asset->storage_type->value);
+        Storage::disk('public')->assertExists($asset->path);
+    }
+
     public function test_upload_requires_authentication(): void
     {
         $file = UploadedFile::fake()->image('photo.jpg');
