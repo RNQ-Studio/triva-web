@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $logo_path
  * @property int $sort_order
  * @property bool $is_active
+ * @property-read Collection<int, VehicleModel> $vehicleModels
  */
 class VehicleMake extends Model
 {
@@ -42,5 +44,11 @@ class VehicleMake extends Model
     public function vehicles(): HasMany
     {
         return $this->hasMany(Vehicle::class);
+    }
+
+    /** @return HasMany<VehicleModel, $this> */
+    public function vehicleModels(): HasMany
+    {
+        return $this->hasMany(VehicleModel::class);
     }
 }

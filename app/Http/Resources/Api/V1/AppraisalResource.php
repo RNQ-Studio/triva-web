@@ -34,6 +34,7 @@ class AppraisalResource extends JsonResource
                 'major_accident_history' => $this->major_accident_history,
                 'service_history' => $this->service_history,
                 'ownership' => $this->ownership,
+                'condition_percentage' => $this->condition_percentage,
             ],
             'photos' => AppraisalPhotoResource::collection($this->whenLoaded('currentPhotos')),
             'timeline' => AppraisalTimelineResource::collection($this->whenLoaded('statusHistories')),

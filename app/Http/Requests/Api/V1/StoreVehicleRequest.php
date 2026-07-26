@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api\V1;
 
 use App\Models\Region;
 use App\Models\VehicleMake;
+use App\Models\VehicleModel;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -20,12 +21,19 @@ class StoreVehicleRequest extends FormRequest
         return [
             'make_id' => [
                 'nullable',
+                'required_with:model_id',
                 'integer',
                 Rule::exists('vehicle_makes', 'id')
                     ->where(fn ($query) => $query->where('is_active', true)),
             ],
             'make' => ['required_without:make_id', 'nullable', 'string', 'max:80'],
-            'model' => ['required', 'string', 'max:100'],
+            'model_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('vehicle_models', 'id')
+                    ->where(fn ($query) => $query->where('is_active', true)),
+            ],
+            'model' => ['required_without:model_id', 'nullable', 'string', 'max:100'],
             'variant' => ['required', 'string', 'max:120'],
             'year' => ['required', 'integer', 'min:1950', 'max:'.(now()->year + 1)],
             'transmission' => ['required', Rule::in(['automatic', 'manual'])],
@@ -70,6 +78,24 @@ class StoreVehicleRequest extends FormRequest
                     );
                 }
             },
+            function (Validator $validator): void {
+                if (! $this->filled('make_id') || ! $this->filled('model_id')) {
+                    return;
+                }
+
+                $belongsToMake = VehicleModel::query()
+                    ->whereKey($this->integer('model_id'))
+                    ->where('vehicle_make_id', $this->integer('make_id'))
+                    ->where('is_active', true)
+                    ->exists();
+
+                if (! $belongsToMake) {
+                    $validator->errors()->add(
+                        'model_id',
+                        'Model harus berada pada merek yang dipilih.',
+                    );
+                }
+            },
         ];
     }
 
@@ -80,6 +106,8 @@ class StoreVehicleRequest extends FormRequest
             'vehicle_make_id',
             'make_id',
             'make',
+            'vehicle_model_id',
+            'model_id',
             'model',
             'variant',
             'year',
@@ -98,8 +126,20 @@ class StoreVehicleRequest extends FormRequest
             $data['make'] = VehicleMake::query()
                 ->whereKey($data['make_id'])
                 ->value('name');
+        } else {
+            $data['vehicle_make_id'] = null;
         }
         unset($data['make_id']);
+
+        if (isset($data['model_id'])) {
+            $data['vehicle_model_id'] = $data['model_id'];
+            $data['model'] = VehicleModel::query()
+                ->whereKey($data['model_id'])
+                ->value('name');
+        } else {
+            $data['vehicle_model_id'] = null;
+        }
+        unset($data['model_id']);
 
         if (isset($data['city_id'])) {
             $data['city'] = Region::query()

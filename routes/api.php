@@ -90,6 +90,8 @@ Route::prefix('v1')->group(function (): void {
             ->middleware('throttle:60,1');
         Route::get('vehicle-makes', [VehicleMakeController::class, 'index'])
             ->middleware('throttle:60,1');
+        Route::get('vehicle-makes/{vehicleMake}/models', [VehicleMakeController::class, 'models'])
+            ->middleware('throttle:60,1');
 
         Route::post('assets/upload', [AssetController::class, 'upload'])->middleware('throttle:30,1');
 

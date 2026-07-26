@@ -44,7 +44,7 @@ class AppraisalService
         });
     }
 
-    /** @param array<string, string> $condition */
+    /** @param array<string, int|string> $condition */
     public function updateCondition(Appraisal $appraisal, array $condition, User $user): Appraisal
     {
         $appraisal->update($condition);

@@ -47,6 +47,9 @@ class AppraisalInfolist
                     TextEntry::make('major_accident_history')->label('Tabrakan berat')->placeholder('Belum diisi'),
                     TextEntry::make('service_history')->label('Riwayat servis')->placeholder('Belum diisi'),
                     TextEntry::make('ownership')->label('Kepemilikan')->placeholder('Belum diisi'),
+                    TextEntry::make('condition_percentage')
+                        ->label('Kondisi saat ini')
+                        ->suffix('%'),
                     TextEntry::make('current_photos_count')->label('Foto saat ini')->suffix(' / 5'),
                 ]),
             Section::make('Hasil terbaru')

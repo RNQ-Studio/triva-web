@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,
             AppConfigSeeder::class,
             VehicleMakeSeeder::class,
+            VehicleModelSeeder::class,
         ]);
 
         // Region data (249,036 records) is opt-in to avoid slow default seeds.

@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $id
  * @property int $user_id
  * @property int|null $vehicle_make_id
+ * @property int|null $vehicle_model_id
  * @property string $make
  * @property string $model
  * @property string $variant
@@ -34,6 +35,7 @@ class Vehicle extends Model
 
     protected $fillable = [
         'vehicle_make_id',
+        'vehicle_model_id',
         'make',
         'model',
         'variant',
@@ -54,6 +56,7 @@ class Vehicle extends Model
             'year' => 'integer',
             'mileage' => 'integer',
             'vehicle_make_id' => 'integer',
+            'vehicle_model_id' => 'integer',
             'province_id' => 'integer',
             'city_id' => 'integer',
         ];
@@ -69,6 +72,12 @@ class Vehicle extends Model
     public function vehicleMake(): BelongsTo
     {
         return $this->belongsTo(VehicleMake::class);
+    }
+
+    /** @return BelongsTo<VehicleModel, $this> */
+    public function vehicleModel(): BelongsTo
+    {
+        return $this->belongsTo(VehicleModel::class);
     }
 
     /** @return BelongsTo<Region, $this> */

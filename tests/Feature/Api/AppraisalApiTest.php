@@ -92,8 +92,19 @@ class AppraisalApiTest extends TestCase
             ->assertConflict()
             ->assertJsonPath('code', 'APPRAISAL_STATE_CONFLICT');
 
-        $this->putJson("/api/v1/appraisals/{$appraisal->id}/vehicle-condition", $this->conditionPayload())
-            ->assertOk();
+        $this->putJson(
+            "/api/v1/appraisals/{$appraisal->id}/vehicle-condition",
+            [...$this->conditionPayload(), 'condition_percentage' => 101],
+        )
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['condition_percentage']);
+
+        $this->putJson(
+            "/api/v1/appraisals/{$appraisal->id}/vehicle-condition",
+            $this->conditionPayload(),
+        )
+            ->assertOk()
+            ->assertJsonPath('data.condition.condition_percentage', 90);
 
         $foreignAsset = Asset::factory()->create([
             'user_id' => User::factory(),
@@ -337,7 +348,7 @@ class AppraisalApiTest extends TestCase
         ];
     }
 
-    /** @return array<string, string> */
+    /** @return array<string, int|string> */
     private function conditionPayload(): array
     {
         return [
@@ -346,6 +357,7 @@ class AppraisalApiTest extends TestCase
             'major_accident_history' => 'no',
             'service_history' => 'complete',
             'ownership' => 'first',
+            'condition_percentage' => 90,
         ];
     }
 
