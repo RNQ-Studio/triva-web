@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -119,6 +120,29 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail, OAu
     public function assignedToyotaServiceBookings(): HasMany
     {
         return $this->hasMany(ToyotaServiceBooking::class, 'assigned_service_advisor_id');
+    }
+
+    /** @return HasMany<OtoxpertBooking, $this> */
+    public function otoxpertBookings(): HasMany
+    {
+        return $this->hasMany(OtoxpertBooking::class);
+    }
+
+    /** @return HasMany<OtoxpertBooking, $this> */
+    public function assignedOtoxpertBookings(): HasMany
+    {
+        return $this->hasMany(OtoxpertBooking::class, 'assigned_operator_id');
+    }
+
+    /** @return BelongsToMany<OtoxpertWorkshop, $this> */
+    public function otoxpertWorkshops(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            OtoxpertWorkshop::class,
+            'otoxpert_workshop_operators',
+            'user_id',
+            'workshop_id',
+        )->withPivot('is_active')->withTimestamps();
     }
 
     /** @return HasMany<CustomerConsent, $this> */

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\UserExcelController;
+use App\Http\Controllers\Api\V1\AdminOtoxpertBookingController;
 use App\Http\Controllers\Api\V1\AdminToyotaServiceBookingController;
 use App\Http\Controllers\Api\V1\AppController;
 use App\Http\Controllers\Api\V1\AppraisalController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\EmailVerificationController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\OtoxpertController;
 use App\Http\Controllers\Api\V1\OtpController;
 use App\Http\Controllers\Api\V1\PasswordResetController;
 use App\Http\Controllers\Api\V1\QuoteController;
@@ -141,6 +143,44 @@ Route::prefix('v1')->group(function (): void {
             );
         });
 
+        Route::prefix('otoxpert')->group(function (): void {
+            Route::get('options', [OtoxpertController::class, 'options'])
+                ->middleware('throttle:60,1');
+            Route::get('workshops', [OtoxpertController::class, 'workshops'])
+                ->middleware('throttle:60,1');
+            Route::get(
+                'workshops/{workshop}/services',
+                [OtoxpertController::class, 'services'],
+            )->middleware('throttle:60,1');
+            Route::get(
+                'availability',
+                [OtoxpertController::class, 'availability'],
+            )->middleware('throttle:60,1');
+            Route::get('bookings', [OtoxpertController::class, 'index']);
+            Route::post('bookings', [OtoxpertController::class, 'store'])
+                ->middleware('throttle:10,1');
+            Route::get(
+                'bookings/{booking}',
+                [OtoxpertController::class, 'show'],
+            );
+            Route::post(
+                'bookings/{booking}/accept-alternative',
+                [OtoxpertController::class, 'acceptAlternative'],
+            );
+            Route::post(
+                'bookings/{booking}/reject-alternative',
+                [OtoxpertController::class, 'rejectAlternative'],
+            );
+            Route::post(
+                'bookings/{booking}/reschedule',
+                [OtoxpertController::class, 'reschedule'],
+            );
+            Route::post(
+                'bookings/{booking}/cancel',
+                [OtoxpertController::class, 'cancel'],
+            );
+        });
+
         Route::prefix('admin/toyota-service')->group(function (): void {
             Route::get('options', [AdminToyotaServiceBookingController::class, 'options']);
             Route::prefix('bookings')->group(function (): void {
@@ -149,6 +189,31 @@ Route::prefix('v1')->group(function (): void {
                 Route::post(
                     '{booking}/actions',
                     [AdminToyotaServiceBookingController::class, 'action'],
+                )->middleware('throttle:30,1');
+            });
+        });
+
+        Route::prefix('admin/otoxpert')->group(function (): void {
+            Route::get(
+                'options',
+                [AdminOtoxpertBookingController::class, 'options'],
+            );
+            Route::get(
+                'bookings/export',
+                [AdminOtoxpertBookingController::class, 'export'],
+            )->middleware('throttle:10,1');
+            Route::prefix('bookings')->group(function (): void {
+                Route::get(
+                    '/',
+                    [AdminOtoxpertBookingController::class, 'index'],
+                );
+                Route::get(
+                    '{booking}',
+                    [AdminOtoxpertBookingController::class, 'show'],
+                );
+                Route::post(
+                    '{booking}/actions',
+                    [AdminOtoxpertBookingController::class, 'action'],
                 )->middleware('throttle:30,1');
             });
         });

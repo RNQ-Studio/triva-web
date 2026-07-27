@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             VehicleMakeSeeder::class,
             VehicleModelSeeder::class,
             ToyotaServiceMasterSeeder::class,
+            OtoxpertMasterSeeder::class,
         ]);
 
         // Region data (249,036 records) is opt-in to avoid slow default seeds.

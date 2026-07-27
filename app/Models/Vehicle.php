@@ -104,6 +104,12 @@ class Vehicle extends Model
         return $this->hasMany(ToyotaServiceBooking::class);
     }
 
+    /** @return HasMany<OtoxpertBooking, $this> */
+    public function otoxpertBookings(): HasMany
+    {
+        return $this->hasMany(OtoxpertBooking::class);
+    }
+
     /** @return HasMany<VehicleBenefitCheck, $this> */
     public function benefitChecks(): HasMany
     {

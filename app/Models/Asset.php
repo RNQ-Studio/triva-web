@@ -89,6 +89,12 @@ class Asset extends Model
         return $this->hasOne(ToyotaServiceBookingPhoto::class);
     }
 
+    /** @return HasOne<OtoxpertBookingPhoto, $this> */
+    public function otoxpertBookingPhoto(): HasOne
+    {
+        return $this->hasOne(OtoxpertBookingPhoto::class);
+    }
+
     // ── Query Scopes ───────────────────────────────────────────────────
 
     /**

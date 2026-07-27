@@ -15,7 +15,11 @@ class UploadAssetRequest extends FormRequest
     {
         $isProtectedVehiclePhoto = in_array(
             $this->string('type')->toString(),
-            ['appraisal-photo', 'toyota-service-photo'],
+            [
+                'appraisal-photo',
+                'toyota-service-photo',
+                'otoxpert-booking-photo',
+            ],
             true,
         );
 
@@ -32,7 +36,11 @@ class UploadAssetRequest extends FormRequest
     {
         $isProtectedVehiclePhoto = in_array(
             $this->string('type')->toString(),
-            ['appraisal-photo', 'toyota-service-photo'],
+            [
+                'appraisal-photo',
+                'toyota-service-photo',
+                'otoxpert-booking-photo',
+            ],
             true,
         );
 

@@ -26,3 +26,7 @@ Schedule::command('toyota-service:expire-alternatives')
     ->everyFiveMinutes()
     ->withoutOverlapping(10)
     ->onOneServer();
+Schedule::command('otoxpert:expire-alternatives')
+    ->everyFiveMinutes()
+    ->withoutOverlapping(10)
+    ->onOneServer();
