@@ -40,7 +40,12 @@ class AppraisalResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->with(['user', 'vehicle', 'latestResult'])
+            ->with([
+                'user',
+                'vehicle',
+                'latestResult',
+                'latestMarketEstimate.comparables',
+            ])
             ->withCount('currentPhotos');
     }
 

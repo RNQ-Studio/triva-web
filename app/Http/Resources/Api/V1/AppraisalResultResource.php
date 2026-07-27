@@ -33,7 +33,34 @@ class AppraisalResultResource extends JsonResource
             'requires_physical_inspection' => $this->requires_physical_inspection,
             'disclaimer' => $this->disclaimer,
             'adjustments' => $this->adjustments ?? [],
+            'sources' => $this->sourceSummary(),
+            'publication_type' => $this->publication_type,
             'published_at' => $this->published_at->toIso8601String(),
         ];
+    }
+
+    /** @return list<array{code: string, label: string, comparable_count: int}> */
+    private function sourceSummary(): array
+    {
+        if (! $this->relationLoaded('comparables')) {
+            return [];
+        }
+
+        return $this->comparables
+            ->where('is_outlier', false)
+            ->groupBy('source_code')
+            ->map(fn ($comparables, string $code): array => [
+                'code' => $code,
+                'label' => match ($code) {
+                    'olx_approved_html' => 'OLX (akses berizin)',
+                    'partner_feed' => 'Feed partner',
+                    'approved_csv' => 'Dataset terkurasi',
+                    'manual_appraiser' => 'Penilaian appraiser',
+                    default => 'Sumber terverifikasi',
+                },
+                'comparable_count' => $comparables->count(),
+            ])
+            ->values()
+            ->all();
     }
 }

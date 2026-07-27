@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api;
 
 use App\Exceptions\AppraisalConflictException;
+use App\Jobs\ProcessAppraisalMarketData;
 use App\Models\Appraisal;
 use App\Models\Asset;
 use App\Models\User;
@@ -156,6 +157,10 @@ class AppraisalApiTest extends TestCase
             ->assertJsonPath('data.status', AppraisalStatus::CollectingMarketData->value)
             ->assertJsonPath('data.reference_no', $appraisal->reference_no)
             ->assertJsonCount(3, 'data.timeline');
+        Queue::assertPushed(
+            ProcessAppraisalMarketData::class,
+            fn (ProcessAppraisalMarketData $job): bool => $job->appraisalId === $appraisal->id,
+        );
 
         $this->withHeader('Idempotency-Key', $key)
             ->postJson("/api/v1/appraisals/{$appraisal->id}/submit", [
@@ -258,6 +263,8 @@ class AppraisalApiTest extends TestCase
                 'requires_physical_inspection' => true,
                 'disclaimer' => 'Hasil merupakan indikasi dan belum merupakan penawaran final.',
                 'adjustments' => [['label' => 'Kondisi kendaraan']],
+                'override_reason_code' => 'manual_assessment',
+                'override_notes' => 'Penilaian manual berdasarkan pembanding yang sudah diverifikasi appraiser.',
             ],
             $this->comparablePayloads(6),
         );

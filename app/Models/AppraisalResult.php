@@ -12,6 +12,7 @@ use Illuminate\Support\Carbon;
 /**
  * @property string $id
  * @property string $appraisal_id
+ * @property string|null $market_estimate_id
  * @property int $version
  * @property int $market_low
  * @property int $market_mid
@@ -25,6 +26,9 @@ use Illuminate\Support\Carbon;
  * @property bool $requires_physical_inspection
  * @property string $disclaimer
  * @property array<string, mixed>|null $adjustments
+ * @property string $publication_type
+ * @property string|null $override_reason_code
+ * @property string|null $override_notes
  * @property int $published_by
  * @property Carbon $published_at
  */
@@ -33,6 +37,7 @@ class AppraisalResult extends Model
     use HasUuids;
 
     protected $fillable = [
+        'market_estimate_id',
         'version',
         'market_low',
         'market_mid',
@@ -46,6 +51,9 @@ class AppraisalResult extends Model
         'requires_physical_inspection',
         'disclaimer',
         'adjustments',
+        'publication_type',
+        'override_reason_code',
+        'override_notes',
         'published_by',
         'published_at',
     ];
@@ -79,6 +87,12 @@ class AppraisalResult extends Model
     public function publisher(): BelongsTo
     {
         return $this->belongsTo(User::class, 'published_by');
+    }
+
+    /** @return BelongsTo<AppraisalMarketEstimate, $this> */
+    public function marketEstimate(): BelongsTo
+    {
+        return $this->belongsTo(AppraisalMarketEstimate::class, 'market_estimate_id');
     }
 
     /** @return HasMany<AppraisalComparable, $this> */

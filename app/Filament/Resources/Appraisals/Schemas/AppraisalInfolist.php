@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Appraisals\Schemas;
 
 use App\Models\Appraisal;
 use App\Support\Enums\AppraisalStatus;
+use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -73,6 +74,80 @@ class AppraisalInfolist
                     TextEntry::make('latestResult.valid_until')
                         ->label('Berlaku hingga')
                         ->dateTime(),
+                ]),
+            Section::make('Rekomendasi engine')
+                ->description('Hanya untuk back-office; customer baru melihat hasil setelah diterbitkan appraiser.')
+                ->columns(3)
+                ->visible(fn (Appraisal $record): bool => $record->latestMarketEstimate !== null)
+                ->schema([
+                    TextEntry::make('latestMarketEstimate.status')
+                        ->label('Status engine')
+                        ->badge(),
+                    TextEntry::make('latestMarketEstimate.market_mid')
+                        ->label('Median pasar')
+                        ->money('IDR')
+                        ->placeholder('Belum tersedia'),
+                    TextEntry::make('latestMarketEstimate.trade_in_low')
+                        ->label('Trade-in rendah')
+                        ->money('IDR')
+                        ->placeholder('Belum tersedia'),
+                    TextEntry::make('latestMarketEstimate.trade_in_high')
+                        ->label('Trade-in tinggi')
+                        ->money('IDR')
+                        ->placeholder('Belum tersedia'),
+                    TextEntry::make('latestMarketEstimate.comparable_count')
+                        ->label('Pembanding valid'),
+                    TextEntry::make('latestMarketEstimate.confidence')
+                        ->label('Confidence')
+                        ->badge(),
+                    TextEntry::make('latestMarketEstimate.provider_codes')
+                        ->label('Provider')
+                        ->listWithLineBreaks()
+                        ->placeholder('Tidak ada provider aktif'),
+                    TextEntry::make('latestMarketEstimate.data_as_of')
+                        ->label('Data per')
+                        ->dateTime()
+                        ->placeholder('Belum tersedia'),
+                    TextEntry::make('latestMarketEstimate.failure_code')
+                        ->label('Kode fallback')
+                        ->placeholder('Tidak ada'),
+                ]),
+            Section::make('Audit pembanding engine')
+                ->description('Semua snapshot disimpan; item duplikat, outlier, atau tidak relevan tetap terlihat dengan alasan eksklusi.')
+                ->visible(fn (Appraisal $record): bool => $record->latestMarketEstimate?->comparables->isNotEmpty() === true)
+                ->schema([
+                    RepeatableEntry::make('latestMarketEstimate.comparables')
+                        ->hiddenLabel()
+                        ->columns(4)
+                        ->schema([
+                            TextEntry::make('source_code')
+                                ->label('Sumber')
+                                ->badge(),
+                            TextEntry::make('listing_price')
+                                ->label('Harga listing')
+                                ->money('IDR'),
+                            TextEntry::make('variant')
+                                ->label('Unit')
+                                ->placeholder('Varian tidak tersedia'),
+                            TextEntry::make('year')
+                                ->label('Tahun'),
+                            TextEntry::make('mileage')
+                                ->label('Kilometer')
+                                ->numeric()
+                                ->suffix(' km')
+                                ->placeholder('Tidak tersedia'),
+                            TextEntry::make('city')
+                                ->label('Lokasi')
+                                ->placeholder('Tidak tersedia'),
+                            TextEntry::make('similarity_score')
+                                ->label('Similarity'),
+                            TextEntry::make('exclusion_reason')
+                                ->label('Status seleksi')
+                                ->badge()
+                                ->formatStateUsing(
+                                    fn (?string $state): string => $state ?? 'valid',
+                                ),
+                        ]),
                 ]),
         ]);
     }

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Exceptions\AppraisalConflictException;
 use App\Models\Appraisal;
 use App\Models\AppraisalComparable;
+use App\Models\AppraisalMarketEstimate;
 use App\Models\AppraisalPhoto;
 use App\Models\AppraisalResult;
 use App\Models\AppraisalStatusHistory;
@@ -142,6 +143,18 @@ class AppraisalReviewService
                 throw new AppraisalConflictException('Hasil tidak dapat diterbitkan pada status ini.');
             }
 
+            $marketEstimate = $this->marketEstimate($locked, $resultData['market_estimate_id'] ?? null);
+            $isOverride = $marketEstimate === null
+                || $this->pricesDifferFromEstimate($marketEstimate, $resultData)
+                || $this->comparablesDifferFromEstimate($marketEstimate, $comparables);
+            $overrideReasonCode = $resultData['override_reason_code'] ?? null;
+            $overrideNotes = $resultData['override_notes'] ?? null;
+            if ($isOverride && (blank($overrideReasonCode) || mb_strlen(trim((string) $overrideNotes)) < 20)) {
+                throw new AppraisalConflictException(
+                    'Override/manual appraisal wajib memiliki reason code dan catatan minimal 20 karakter.',
+                );
+            }
+
             $validComparableCount = collect($comparables)
                 ->where('is_outlier', false)
                 ->count();
@@ -149,6 +162,14 @@ class AppraisalReviewService
             $result = new AppraisalResult([
                 ...$resultData,
                 'version' => $version,
+                'market_estimate_id' => $marketEstimate?->getKey(),
+                'publication_type' => match (true) {
+                    $marketEstimate === null => 'manual',
+                    $isOverride => 'appraiser_override',
+                    default => 'approved_engine',
+                },
+                'override_reason_code' => $isOverride ? $overrideReasonCode : null,
+                'override_notes' => $isOverride ? trim((string) $overrideNotes) : null,
                 'confidence' => AppraisalConfidence::fromComparableCount($validComparableCount),
                 'comparable_count' => $validComparableCount,
                 'published_by' => $appraiser->getKey(),
@@ -185,6 +206,93 @@ class AppraisalReviewService
 
             return $result->load('comparables');
         });
+    }
+
+    private function marketEstimate(
+        Appraisal $appraisal,
+        mixed $marketEstimateId,
+    ): ?AppraisalMarketEstimate {
+        if (blank($marketEstimateId)) {
+            return null;
+        }
+
+        $estimate = $appraisal->marketEstimates()->find((string) $marketEstimateId);
+        if ($estimate === null) {
+            throw new AppraisalConflictException('Rekomendasi engine tidak berasal dari appraisal ini.');
+        }
+
+        return $estimate;
+    }
+
+    /** @param array<string, mixed> $resultData */
+    private function pricesDifferFromEstimate(
+        AppraisalMarketEstimate $estimate,
+        array $resultData,
+    ): bool {
+        foreach ([
+            'market_low',
+            'market_mid',
+            'market_high',
+            'trade_in_low',
+            'trade_in_high',
+        ] as $field) {
+            if ((int) $resultData[$field] !== (int) $estimate->{$field}) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** @param list<array<string, mixed>> $comparables */
+    private function comparablesDifferFromEstimate(
+        AppraisalMarketEstimate $estimate,
+        array $comparables,
+    ): bool {
+        $engineFingerprints = $estimate->comparables()
+            ->whereNull('exclusion_reason')
+            ->get()
+            ->map(fn ($comparable): string => $this->comparableFingerprint([
+                'source_code' => $comparable->source_code,
+                'external_reference_hash' => $comparable->external_reference_hash,
+                'make' => $comparable->make,
+                'model' => $comparable->model,
+                'variant' => $comparable->variant,
+                'year' => $comparable->year,
+                'mileage' => $comparable->mileage,
+                'listing_price' => $comparable->listing_price,
+                'city' => $comparable->city,
+            ]))
+            ->sort()
+            ->values()
+            ->all();
+        $publishedFingerprints = collect($comparables)
+            ->where('is_outlier', false)
+            ->map(fn (array $comparable): string => $this->comparableFingerprint($comparable))
+            ->sort()
+            ->values()
+            ->all();
+
+        return $engineFingerprints !== $publishedFingerprints;
+    }
+
+    /** @param array<string, mixed> $comparable */
+    private function comparableFingerprint(array $comparable): string
+    {
+        if (filled($comparable['external_reference_hash'] ?? null)) {
+            return (string) $comparable['external_reference_hash'];
+        }
+
+        return hash('sha256', implode('|', [
+            (string) ($comparable['source_code'] ?? ''),
+            (string) ($comparable['make'] ?? ''),
+            (string) ($comparable['model'] ?? ''),
+            (string) ($comparable['variant'] ?? ''),
+            (string) ($comparable['year'] ?? ''),
+            (string) ($comparable['mileage'] ?? ''),
+            (string) ($comparable['listing_price'] ?? ''),
+            (string) ($comparable['city'] ?? ''),
+        ]));
     }
 
     private function history(

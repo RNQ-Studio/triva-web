@@ -37,6 +37,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $inspection_notes
  * @property Carbon|null $updated_at
  * @property-read Vehicle $vehicle
+ * @property-read AppraisalMarketEstimate|null $latestMarketEstimate
  * @property-read AppraisalResult|null $latestResult
  */
 class Appraisal extends Model
@@ -132,6 +133,18 @@ class Appraisal extends Model
     public function latestResult(): HasOne
     {
         return $this->hasOne(AppraisalResult::class)->orderByDesc('version');
+    }
+
+    /** @return HasMany<AppraisalMarketEstimate, $this> */
+    public function marketEstimates(): HasMany
+    {
+        return $this->hasMany(AppraisalMarketEstimate::class);
+    }
+
+    /** @return HasOne<AppraisalMarketEstimate, $this> */
+    public function latestMarketEstimate(): HasOne
+    {
+        return $this->hasOne(AppraisalMarketEstimate::class)->orderByDesc('version');
     }
 
     public function conditionIsComplete(): bool

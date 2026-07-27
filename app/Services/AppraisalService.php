@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Exceptions\AppraisalConflictException;
+use App\Jobs\ProcessAppraisalMarketData;
 use App\Models\Appraisal;
 use App\Models\AppraisalPhoto;
 use App\Models\AppraisalStatusHistory;
@@ -173,8 +174,12 @@ class AppraisalService
                 $locked,
                 AppraisalStatus::CollectingMarketData,
                 'Mencari data pembanding',
-                'Permintaan sedang disiapkan untuk validasi appraiser.',
+                'Sistem sedang mengambil dan mengolah data pasar yang disetujui.',
             );
+
+            DB::afterCommit(fn () => ProcessAppraisalMarketData::dispatch(
+                $locked->getKey(),
+            )->onQueue((string) config('appraisal.market_data.queue')));
         });
 
         return $this->loadCustomerRelations($appraisal->refresh());
@@ -299,7 +304,7 @@ class AppraisalService
             'statusHistories' => fn ($query) => $query
                 ->where('user_visible', true)
                 ->oldest('created_at'),
-            'latestResult',
+            'latestResult.comparables',
         ]);
     }
 
