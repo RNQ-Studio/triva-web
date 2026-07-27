@@ -32,6 +32,8 @@ class RolePermissionSeeder extends Seeder
         'service_bookings',
         'toyota_service_config',
         'otoxpert_service_config',
+        'credit_programs',
+        'credit_leads',
     ];
 
     /** @var list<string> */
@@ -70,6 +72,8 @@ class RolePermissionSeeder extends Seeder
             'service_bookings.viewAny', 'service_bookings.view', 'service_bookings.create', 'service_bookings.update', 'service_bookings.delete',
             'toyota_service_config.viewAny', 'toyota_service_config.view', 'toyota_service_config.create', 'toyota_service_config.update', 'toyota_service_config.delete',
             'otoxpert_service_config.viewAny', 'otoxpert_service_config.view', 'otoxpert_service_config.create', 'otoxpert_service_config.update', 'otoxpert_service_config.delete',
+            'credit_programs.viewAny', 'credit_programs.view', 'credit_programs.create', 'credit_programs.update',
+            'credit_leads.viewAny', 'credit_leads.view', 'credit_leads.update',
         ]);
 
         $staff->syncPermissions([
@@ -82,6 +86,7 @@ class RolePermissionSeeder extends Seeder
             'service_bookings.viewAny', 'service_bookings.view', 'service_bookings.update',
             'toyota_service_config.viewAny', 'toyota_service_config.view',
             'otoxpert_service_config.viewAny', 'otoxpert_service_config.view',
+            'credit_leads.viewAny', 'credit_leads.view', 'credit_leads.update',
         ]);
     }
 }

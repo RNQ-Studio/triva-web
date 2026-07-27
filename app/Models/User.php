@@ -134,6 +134,27 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail, OAu
         return $this->hasMany(OtoxpertBooking::class, 'assigned_operator_id');
     }
 
+    /** @return HasMany<CreditSimulation, $this> */
+    public function creditSimulations(): HasMany
+    {
+        return $this->hasMany(CreditSimulation::class);
+    }
+
+    /** @return HasMany<CreditFollowUpLead, $this> */
+    public function creditFollowUpLeads(): HasMany
+    {
+        return $this->hasMany(CreditFollowUpLead::class);
+    }
+
+    /** @return HasMany<CreditFollowUpLead, $this> */
+    public function assignedCreditFollowUpLeads(): HasMany
+    {
+        return $this->hasMany(
+            CreditFollowUpLead::class,
+            'assigned_sales_id',
+        );
+    }
+
     /** @return BelongsToMany<OtoxpertWorkshop, $this> */
     public function otoxpertWorkshops(): BelongsToMany
     {

@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\V1\ArticleController;
 use App\Http\Controllers\Api\V1\AssetController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CategoryController;
+use App\Http\Controllers\Api\V1\CreditCatalogController;
+use App\Http\Controllers\Api\V1\CreditSimulationController;
 use App\Http\Controllers\Api\V1\EmailVerificationController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\NotificationController;
@@ -179,6 +181,32 @@ Route::prefix('v1')->group(function (): void {
                 'bookings/{booking}/cancel',
                 [OtoxpertController::class, 'cancel'],
             );
+        });
+
+        Route::prefix('credit')->group(function (): void {
+            Route::get('vehicles', [CreditCatalogController::class, 'vehicles'])
+                ->middleware('throttle:60,1');
+            Route::get('programs', [CreditCatalogController::class, 'programs'])
+                ->middleware('throttle:60,1');
+            Route::prefix('simulations')->group(function (): void {
+                Route::post(
+                    'calculate',
+                    [CreditSimulationController::class, 'calculate'],
+                )->middleware('throttle:30,1');
+                Route::get('/', [CreditSimulationController::class, 'index']);
+                Route::post(
+                    '/',
+                    [CreditSimulationController::class, 'store'],
+                )->middleware('throttle:10,1');
+                Route::get(
+                    '{simulation}',
+                    [CreditSimulationController::class, 'show'],
+                );
+                Route::post(
+                    '{simulation}/request-follow-up',
+                    [CreditSimulationController::class, 'requestFollowUp'],
+                )->middleware('throttle:10,1');
+            });
         });
 
         Route::prefix('admin/toyota-service')->group(function (): void {
