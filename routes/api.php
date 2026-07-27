@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\UserExcelController;
 use App\Http\Controllers\Api\V1\AdminBodyPaintController;
 use App\Http\Controllers\Api\V1\AdminOtoxpertBookingController;
 use App\Http\Controllers\Api\V1\AdminToyotaServiceBookingController;
+use App\Http\Controllers\Api\V1\AdminUserController;
 use App\Http\Controllers\Api\V1\AppController;
 use App\Http\Controllers\Api\V1\AppraisalController;
 use App\Http\Controllers\Api\V1\ArticleController;
@@ -305,6 +306,12 @@ Route::prefix('v1')->group(function (): void {
                     [AdminBodyPaintController::class, 'action'],
                 )->middleware('throttle:30,1');
             });
+        });
+
+        Route::prefix('admin/users')->group(function (): void {
+            Route::get('/', [AdminUserController::class, 'index']);
+            Route::post('{user}/grant-admin', [AdminUserController::class, 'grantAdmin'])
+                ->middleware('throttle:30,1');
         });
 
         Route::apiResource('categories', CategoryController::class);
