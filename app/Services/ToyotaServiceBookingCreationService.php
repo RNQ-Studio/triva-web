@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Exceptions\ToyotaServiceConflictException;
 use App\Models\Appraisal;
 use App\Models\Asset;
+use App\Models\BodyPaintEstimate;
 use App\Models\ToyotaServiceBooking;
 use App\Models\ToyotaServiceBookingPhoto;
 use App\Models\ToyotaServiceBookingStatusHistory;
@@ -46,7 +47,11 @@ class ToyotaServiceBookingCreationService
         $fulfillmentType = ToyotaServiceFulfillmentType::from($data['fulfillment_type']);
 
         $this->assertCustomerReady($user);
-        $this->assertToyotaVehicle($vehicle);
+        $this->assertToyotaVehicle(
+            $vehicle,
+            $serviceType,
+            isset($data['source_bp_estimate_id']),
+        );
         [$primaryStart, $primaryEnd] = $this->availability->validateAndParseSlot(
             $data['primary_slot'],
             $location,
@@ -87,6 +92,24 @@ class ToyotaServiceBookingCreationService
                 throw ValidationException::withMessages([
                     'source_appraisal_id' => [
                         'Appraisal sumber harus dimiliki pelanggan dan memakai kendaraan yang sama.',
+                    ],
+                ]);
+            }
+        }
+
+        if (isset($data['source_bp_estimate_id'])) {
+            $sourceEstimate = BodyPaintEstimate::query()
+                ->whereKey($data['source_bp_estimate_id'])
+                ->where('user_id', $user->getKey())
+                ->where('vehicle_id', $vehicle->getKey())
+                ->first();
+            if (
+                $sourceEstimate === null
+                || ! $sourceEstimate->status->exposesPublishedEstimate()
+            ) {
+                throw ValidationException::withMessages([
+                    'source_bp_estimate_id' => [
+                        'Estimasi Body & Paint sumber tidak valid untuk booking.',
                     ],
                 ]);
             }
@@ -252,8 +275,14 @@ class ToyotaServiceBookingCreationService
         }
     }
 
-    private function assertToyotaVehicle(Vehicle $vehicle): void
-    {
+    private function assertToyotaVehicle(
+        Vehicle $vehicle,
+        ToyotaServiceType $serviceType,
+        bool $fromBodyPaintEstimate,
+    ): void {
+        if ($fromBodyPaintEstimate && $serviceType->code === 'body-paint') {
+            return;
+        }
         $make = $vehicle->vehicle_make_id !== null
             ? $vehicle->vehicleMake->name
             : $vehicle->make;

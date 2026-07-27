@@ -346,6 +346,15 @@ class ToyotaServiceBooking extends Model
         return $this->belongsTo(Appraisal::class, 'source_appraisal_id');
     }
 
+    /** @return BelongsTo<BodyPaintEstimate, $this> */
+    public function sourceBodyPaintEstimate(): BelongsTo
+    {
+        return $this->belongsTo(
+            BodyPaintEstimate::class,
+            'source_bp_estimate_id',
+        );
+    }
+
     /** @return HasMany<ToyotaServiceBookingPhoto, $this> */
     public function photos(): HasMany
     {

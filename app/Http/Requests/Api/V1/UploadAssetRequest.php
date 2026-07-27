@@ -19,6 +19,7 @@ class UploadAssetRequest extends FormRequest
                 'appraisal-photo',
                 'toyota-service-photo',
                 'otoxpert-booking-photo',
+                'body-paint-estimate-photo',
             ],
             true,
         );
@@ -40,6 +41,7 @@ class UploadAssetRequest extends FormRequest
                 'appraisal-photo',
                 'toyota-service-photo',
                 'otoxpert-booking-photo',
+                'body-paint-estimate-photo',
             ],
             true,
         );

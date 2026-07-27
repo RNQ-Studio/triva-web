@@ -110,6 +110,12 @@ class Vehicle extends Model
         return $this->hasMany(OtoxpertBooking::class);
     }
 
+    /** @return HasMany<BodyPaintEstimate, $this> */
+    public function bodyPaintEstimates(): HasMany
+    {
+        return $this->hasMany(BodyPaintEstimate::class);
+    }
+
     /** @return HasMany<VehicleBenefitCheck, $this> */
     public function benefitChecks(): HasMany
     {

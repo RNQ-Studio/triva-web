@@ -34,6 +34,8 @@ class RolePermissionSeeder extends Seeder
         'otoxpert_service_config',
         'credit_programs',
         'credit_leads',
+        'bp_estimates',
+        'bp_price_matrix',
     ];
 
     /** @var list<string> */
@@ -74,6 +76,8 @@ class RolePermissionSeeder extends Seeder
             'otoxpert_service_config.viewAny', 'otoxpert_service_config.view', 'otoxpert_service_config.create', 'otoxpert_service_config.update', 'otoxpert_service_config.delete',
             'credit_programs.viewAny', 'credit_programs.view', 'credit_programs.create', 'credit_programs.update',
             'credit_leads.viewAny', 'credit_leads.view', 'credit_leads.update',
+            'bp_estimates.viewAny', 'bp_estimates.view', 'bp_estimates.create', 'bp_estimates.update',
+            'bp_price_matrix.viewAny', 'bp_price_matrix.view', 'bp_price_matrix.create', 'bp_price_matrix.update',
         ]);
 
         $staff->syncPermissions([
@@ -87,6 +91,8 @@ class RolePermissionSeeder extends Seeder
             'toyota_service_config.viewAny', 'toyota_service_config.view',
             'otoxpert_service_config.viewAny', 'otoxpert_service_config.view',
             'credit_leads.viewAny', 'credit_leads.view', 'credit_leads.update',
+            'bp_estimates.viewAny', 'bp_estimates.view', 'bp_estimates.update',
+            'bp_price_matrix.viewAny', 'bp_price_matrix.view',
         ]);
     }
 }

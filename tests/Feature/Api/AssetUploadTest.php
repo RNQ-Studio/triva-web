@@ -148,6 +148,50 @@ class AssetUploadTest extends TestCase
             ->assertJsonValidationErrors(['file']);
     }
 
+    public function test_body_paint_photo_is_image_only_protected_and_retained_for_180_days(): void
+    {
+        Storage::forgetDisk('local');
+        config(['filesystems.asset_upload_disk' => 'local']);
+        Carbon::setTestNow('2026-07-28 10:00:00');
+
+        $response = $this->withToken($this->accessToken)
+            ->postJson('/api/v1/assets/upload', [
+                'file' => UploadedFile::fake()->image(
+                    'body-paint-damage.jpg',
+                    1280,
+                    720,
+                ),
+                'type' => 'body-paint-estimate-photo',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.public_url', null)
+            ->assertJsonPath(
+                'data.retain_until',
+                '2027-01-24T10:00:00+00:00',
+            );
+
+        $asset = Asset::query()->findOrFail($response->json('data.id'));
+        $this->assertSame('body-paint-estimate-photo', $asset->category);
+        $this->assertTrue($asset->is_protected);
+        $this->assertTrue(
+            $asset->retain_until?->equalTo(Carbon::now()->addDays(180)),
+        );
+        Storage::disk('local')->assertExists($asset->path);
+        Storage::disk('local')->delete($asset->path);
+
+        $this->withToken($this->accessToken)
+            ->postJson('/api/v1/assets/upload', [
+                'file' => UploadedFile::fake()->create(
+                    'estimate.pdf',
+                    128,
+                    'application/pdf',
+                ),
+                'type' => 'body-paint-estimate-photo',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['file']);
+    }
+
     public function test_unprotected_asset_uses_public_disk_when_local_fallback_is_active(): void
     {
         Storage::fake('public');

@@ -155,6 +155,21 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail, OAu
         );
     }
 
+    /** @return HasMany<BodyPaintEstimate, $this> */
+    public function bodyPaintEstimates(): HasMany
+    {
+        return $this->hasMany(BodyPaintEstimate::class);
+    }
+
+    /** @return HasMany<BodyPaintEstimate, $this> */
+    public function assignedBodyPaintEstimates(): HasMany
+    {
+        return $this->hasMany(
+            BodyPaintEstimate::class,
+            'assigned_estimator_id',
+        );
+    }
+
     /** @return BelongsToMany<OtoxpertWorkshop, $this> */
     public function otoxpertWorkshops(): BelongsToMany
     {

@@ -24,7 +24,12 @@ class AssetController extends Controller
 
         $isProtectedVehiclePhoto = in_array(
             $request->string('type')->toString(),
-            ['appraisal-photo', 'toyota-service-photo'],
+            [
+                'appraisal-photo',
+                'toyota-service-photo',
+                'otoxpert-booking-photo',
+                'body-paint-estimate-photo',
+            ],
             true,
         );
         $retainUntil = $isProtectedVehiclePhoto

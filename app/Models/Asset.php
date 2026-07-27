@@ -95,6 +95,12 @@ class Asset extends Model
         return $this->hasOne(OtoxpertBookingPhoto::class);
     }
 
+    /** @return HasOne<BodyPaintDamagePhoto, $this> */
+    public function bodyPaintDamagePhoto(): HasOne
+    {
+        return $this->hasOne(BodyPaintDamagePhoto::class);
+    }
+
     // ── Query Scopes ───────────────────────────────────────────────────
 
     /**

@@ -116,6 +116,12 @@ class Appraisal extends Model
         return $this->hasMany(AppraisalStatusHistory::class);
     }
 
+    /** @return HasMany<BodyPaintEstimate, $this> */
+    public function bodyPaintEstimates(): HasMany
+    {
+        return $this->hasMany(BodyPaintEstimate::class);
+    }
+
     /** @return HasMany<AppraisalResult, $this> */
     public function results(): HasMany
     {

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\UserExcelController;
+use App\Http\Controllers\Api\V1\AdminBodyPaintController;
 use App\Http\Controllers\Api\V1\AdminOtoxpertBookingController;
 use App\Http\Controllers\Api\V1\AdminToyotaServiceBookingController;
 use App\Http\Controllers\Api\V1\AppController;
@@ -8,6 +9,7 @@ use App\Http\Controllers\Api\V1\AppraisalController;
 use App\Http\Controllers\Api\V1\ArticleController;
 use App\Http\Controllers\Api\V1\AssetController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\BodyPaintController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\CreditCatalogController;
 use App\Http\Controllers\Api\V1\CreditSimulationController;
@@ -209,6 +211,42 @@ Route::prefix('v1')->group(function (): void {
             });
         });
 
+        Route::prefix('body-paint')->group(function (): void {
+            Route::get('options', [BodyPaintController::class, 'options'])
+                ->middleware('throttle:60,1');
+            Route::get('estimates', [BodyPaintController::class, 'index']);
+            Route::post('estimates', [BodyPaintController::class, 'store'])
+                ->middleware('throttle:10,1');
+            Route::get(
+                'estimates/{estimate}',
+                [BodyPaintController::class, 'show'],
+            );
+            Route::put(
+                'estimates/{estimate}/damages',
+                [BodyPaintController::class, 'updateDamages'],
+            );
+            Route::post(
+                'estimates/{estimate}/photos',
+                [BodyPaintController::class, 'attachPhotos'],
+            )->middleware('throttle:30,1');
+            Route::post(
+                'estimates/{estimate}/submit',
+                [BodyPaintController::class, 'submit'],
+            )->middleware('throttle:10,1');
+            Route::post(
+                'estimates/{estimate}/resubmit',
+                [BodyPaintController::class, 'resubmit'],
+            )->middleware('throttle:10,1');
+            Route::post(
+                'estimates/{estimate}/decision',
+                [BodyPaintController::class, 'decision'],
+            );
+            Route::post(
+                'estimates/{estimate}/request-booking',
+                [BodyPaintController::class, 'requestBooking'],
+            )->middleware('throttle:10,1');
+        });
+
         Route::prefix('admin/toyota-service')->group(function (): void {
             Route::get('options', [AdminToyotaServiceBookingController::class, 'options']);
             Route::prefix('bookings')->group(function (): void {
@@ -242,6 +280,29 @@ Route::prefix('v1')->group(function (): void {
                 Route::post(
                     '{booking}/actions',
                     [AdminOtoxpertBookingController::class, 'action'],
+                )->middleware('throttle:30,1');
+            });
+        });
+
+        Route::prefix('admin/body-paint')->group(function (): void {
+            Route::get('options', [AdminBodyPaintController::class, 'options']);
+            Route::post(
+                'price-matrix/import-preview',
+                [AdminBodyPaintController::class, 'previewImport'],
+            )->middleware('throttle:10,1');
+            Route::post(
+                'price-matrix/import',
+                [AdminBodyPaintController::class, 'import'],
+            )->middleware('throttle:10,1');
+            Route::prefix('estimates')->group(function (): void {
+                Route::get('/', [AdminBodyPaintController::class, 'index']);
+                Route::get(
+                    '{estimate}',
+                    [AdminBodyPaintController::class, 'show'],
+                );
+                Route::post(
+                    '{estimate}/actions',
+                    [AdminBodyPaintController::class, 'action'],
                 )->middleware('throttle:30,1');
             });
         });
