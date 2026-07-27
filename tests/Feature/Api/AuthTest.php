@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api;
 
 use App\Models\User;
+use App\Models\UserDevice;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Middleware\ThrottleRequests;
@@ -250,5 +251,86 @@ class AuthTest extends TestCase
         $this->withToken($tokens2['access_token'])
             ->getJson('/api/v1/auth/me')
             ->assertUnauthorized();
+    }
+
+    public function test_authenticated_device_endpoint_validates_and_upserts_push_registration(): void
+    {
+        $this->postJson('/api/v1/auth/device', [])->assertUnauthorized();
+        $token = $this->loginToken();
+
+        $this->withToken($token['access_token'])
+            ->postJson('/api/v1/auth/device', [])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['device_id', 'platform', 'push_token']);
+
+        $this->withToken($token['access_token'])
+            ->postJson('/api/v1/auth/device', [
+                'device_id' => 'samsung-a56',
+                'platform' => 'android',
+                'os_version' => '16',
+                'app_version' => '1.2.3',
+                'app_build' => '123',
+                'device_name' => 'Samsung A56',
+                'push_token' => 'fcm-token-a56',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.device_id', 'samsung-a56')
+            ->assertJsonPath('data.platform', 'android')
+            ->assertJsonPath('data.push_enabled', true);
+
+        $this->assertDatabaseHas('user_devices', [
+            'user_id' => $this->user->getKey(),
+            'device_id' => 'samsung-a56',
+            'app_version' => '1.2.3',
+            'app_build' => '123',
+            'push_token' => 'fcm-token-a56',
+        ]);
+
+        $this->withToken($token['access_token'])
+            ->postJson('/api/v1/auth/device', [
+                'device_id' => 'samsung-a56',
+                'platform' => 'android',
+                'push_token' => null,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.push_enabled', false);
+
+        $this->assertDatabaseCount('user_devices', 1);
+        $this->assertDatabaseHas('user_devices', [
+            'user_id' => $this->user->getKey(),
+            'device_id' => 'samsung-a56',
+            'push_token' => null,
+        ]);
+    }
+
+    public function test_push_token_moves_to_latest_authenticated_device_owner(): void
+    {
+        $other = User::factory()->create();
+        UserDevice::query()->create([
+            'user_id' => $other->getKey(),
+            'device_id' => 'old-device',
+            'platform' => 'android',
+            'push_token' => 'shared-fcm-token',
+        ]);
+        $token = $this->loginToken();
+
+        $this->withToken($token['access_token'])
+            ->postJson('/api/v1/auth/device', [
+                'device_id' => 'new-device',
+                'platform' => 'android',
+                'push_token' => 'shared-fcm-token',
+            ])
+            ->assertOk();
+
+        $this->assertDatabaseHas('user_devices', [
+            'user_id' => $other->getKey(),
+            'device_id' => 'old-device',
+            'push_token' => null,
+        ]);
+        $this->assertDatabaseHas('user_devices', [
+            'user_id' => $this->user->getKey(),
+            'device_id' => 'new-device',
+            'push_token' => 'shared-fcm-token',
+        ]);
     }
 }

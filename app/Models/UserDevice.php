@@ -17,6 +17,7 @@ use Illuminate\Support\Carbon;
  * @property DevicePlatform $platform
  * @property string|null $os_version
  * @property string|null $app_version
+ * @property string|null $app_build
  * @property string|null $device_name
  * @property string|null $push_token
  * @property Carbon|null $last_active_at
@@ -33,6 +34,7 @@ class UserDevice extends Model
         'platform',
         'os_version',
         'app_version',
+        'app_build',
         'device_name',
         'push_token',
         'last_active_at',

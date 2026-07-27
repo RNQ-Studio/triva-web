@@ -22,8 +22,12 @@ class AssetController extends Controller
         /** @var UploadedFile $file */
         $file = $request->file('file');
 
-        $isAppraisalPhoto = $request->string('type')->toString() === 'appraisal-photo';
-        $retainUntil = $isAppraisalPhoto
+        $isProtectedVehiclePhoto = in_array(
+            $request->string('type')->toString(),
+            ['appraisal-photo', 'toyota-service-photo'],
+            true,
+        );
+        $retainUntil = $isProtectedVehiclePhoto
             ? Carbon::now()->addDays(180)
             : $request->date('retain_until');
 
@@ -32,7 +36,7 @@ class AssetController extends Controller
             type: $request->string('type')->toString(),
             userId: $request->user()?->getKey(),
             retainUntil: $retainUntil,
-            isProtected: $isAppraisalPhoto || $request->boolean('is_protected'),
+            isProtected: $isProtectedVehiclePhoto || $request->boolean('is_protected'),
         );
 
         return ApiResponse::success(new AssetResource($asset), 'Asset uploaded', 201);

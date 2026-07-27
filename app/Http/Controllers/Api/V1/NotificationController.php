@@ -19,9 +19,11 @@ class NotificationController extends Controller
         $notifications = $user->notifications()
             ->orderByRaw('read_at IS NOT NULL')
             ->orderByDesc('created_at')
-            ->paginate(20);
+            ->orderByDesc('id')
+            ->paginate(20)
+            ->through(fn (Notification $notification): array => $this->format($notification));
 
-        return ApiResponse::success($notifications->map(fn (Notification $n): array => $this->format($n)));
+        return ApiResponse::success($notifications);
     }
 
     public function unreadCount(Request $request): JsonResponse

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -80,6 +81,12 @@ class Asset extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /** @return HasOne<ToyotaServiceBookingPhoto, $this> */
+    public function toyotaServiceBookingPhoto(): HasOne
+    {
+        return $this->hasOne(ToyotaServiceBookingPhoto::class);
     }
 
     // ── Query Scopes ───────────────────────────────────────────────────

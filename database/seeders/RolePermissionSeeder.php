@@ -29,6 +29,8 @@ class RolePermissionSeeder extends Seeder
         'tags',
         'vehicles',
         'appraisals',
+        'service_bookings',
+        'toyota_service_config',
     ];
 
     /** @var list<string> */
@@ -64,6 +66,8 @@ class RolePermissionSeeder extends Seeder
             'tags.viewAny', 'tags.view', 'tags.create', 'tags.update', 'tags.delete',
             'vehicles.viewAny', 'vehicles.view', 'vehicles.update',
             'appraisals.viewAny', 'appraisals.view', 'appraisals.update',
+            'service_bookings.viewAny', 'service_bookings.view', 'service_bookings.create', 'service_bookings.update', 'service_bookings.delete',
+            'toyota_service_config.viewAny', 'toyota_service_config.view', 'toyota_service_config.create', 'toyota_service_config.update', 'toyota_service_config.delete',
         ]);
 
         $staff->syncPermissions([
@@ -73,6 +77,8 @@ class RolePermissionSeeder extends Seeder
             'tags.viewAny', 'tags.view', 'tags.create', 'tags.update',
             'vehicles.viewAny', 'vehicles.view',
             'appraisals.viewAny', 'appraisals.view', 'appraisals.update',
+            'service_bookings.viewAny', 'service_bookings.view', 'service_bookings.update',
+            'toyota_service_config.viewAny', 'toyota_service_config.view',
         ]);
     }
 }

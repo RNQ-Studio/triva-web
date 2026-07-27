@@ -21,7 +21,8 @@ class VehicleController extends Controller
         /** @var User $user */
         $user = $request->user();
         $vehicles = $user->vehicles()
-            ->latest('updated_at')
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
             ->paginate(min($request->integer('per_page', 20), 100));
 
         return ApiResponse::success(VehicleResource::collection($vehicles));

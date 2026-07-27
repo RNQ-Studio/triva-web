@@ -8,6 +8,7 @@ use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Routing\Middleware\ThrottleRequests;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Passport\ClientRepository;
 use Tests\TestCase;
@@ -114,6 +115,37 @@ class AssetUploadTest extends TestCase
         $this->assertTrue($asset->is_protected);
         Storage::disk('local')->assertExists($asset->path);
         Storage::disk('local')->delete($asset->path);
+    }
+
+    public function test_toyota_service_photo_is_image_only_protected_and_retained_for_180_days(): void
+    {
+        Storage::forgetDisk('local');
+        config(['filesystems.asset_upload_disk' => 'local']);
+        Carbon::setTestNow('2026-07-27 10:00:00');
+
+        $response = $this->withToken($this->accessToken)
+            ->postJson('/api/v1/assets/upload', [
+                'file' => UploadedFile::fake()->image('damage.jpg', 1280, 720),
+                'type' => 'toyota-service-photo',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.public_url', null)
+            ->assertJsonPath('data.retain_until', '2027-01-23T10:00:00+00:00');
+
+        $asset = Asset::query()->findOrFail($response->json('data.id'));
+        $this->assertSame('toyota-service-photo', $asset->category);
+        $this->assertTrue($asset->is_protected);
+        $this->assertTrue($asset->retain_until?->equalTo(Carbon::now()->addDays(180)));
+        Storage::disk('local')->assertExists($asset->path);
+        Storage::disk('local')->delete($asset->path);
+
+        $this->withToken($this->accessToken)
+            ->postJson('/api/v1/assets/upload', [
+                'file' => UploadedFile::fake()->create('estimate.pdf', 128, 'application/pdf'),
+                'type' => 'toyota-service-photo',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['file']);
     }
 
     public function test_unprotected_asset_uses_public_disk_when_local_fallback_is_active(): void

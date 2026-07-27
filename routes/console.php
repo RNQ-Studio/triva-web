@@ -9,5 +9,20 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 // Pembersihan asset dua fase. withoutOverlapping mencegah tumpang tindih bila eksekusi lama.
-Schedule::command('assets:soft-delete-expired')->dailyAt('01:00')->withoutOverlapping();
-Schedule::command('assets:hard-delete-expired')->dailyAt('02:00')->withoutOverlapping();
+Schedule::command('assets:soft-delete-expired')
+    ->dailyAt('01:00')
+    ->timezone('Asia/Jakarta')
+    ->withoutOverlapping();
+Schedule::command('assets:hard-delete-expired')
+    ->dailyAt('02:00')
+    ->timezone('Asia/Jakarta')
+    ->withoutOverlapping();
+Schedule::command('assets:cleanup-orphan-toyota-service-photos')
+    ->dailyAt('01:30')
+    ->timezone('Asia/Jakarta')
+    ->withoutOverlapping()
+    ->onOneServer();
+Schedule::command('toyota-service:expire-alternatives')
+    ->everyFiveMinutes()
+    ->withoutOverlapping(10)
+    ->onOneServer();

@@ -97,4 +97,16 @@ class Vehicle extends Model
     {
         return $this->hasMany(Appraisal::class);
     }
+
+    /** @return HasMany<ToyotaServiceBooking, $this> */
+    public function toyotaServiceBookings(): HasMany
+    {
+        return $this->hasMany(ToyotaServiceBooking::class);
+    }
+
+    /** @return HasMany<VehicleBenefitCheck, $this> */
+    public function benefitChecks(): HasMany
+    {
+        return $this->hasMany(VehicleBenefitCheck::class);
+    }
 }

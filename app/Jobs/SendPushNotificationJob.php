@@ -10,10 +10,13 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Throwable;
 
 class SendPushNotificationJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public int $tries = 4;
 
     /**
      * Create a new job instance.
@@ -38,7 +41,10 @@ class SendPushNotificationJob implements ShouldQueue
             ->get();
 
         if ($devices->isEmpty()) {
-            $this->notification->update(['sent_at' => now()]);
+            $this->notification->update([
+                'sent_at' => now(),
+                'failed_at' => null,
+            ]);
 
             return;
         }
@@ -62,8 +68,22 @@ class SendPushNotificationJob implements ShouldQueue
         }
 
         $this->notification->update($anySuccess
-            ? ['sent_at' => now()]
+            ? ['sent_at' => now(), 'failed_at' => null]
             : ['failed_at' => now()]
         );
+    }
+
+    /** @return list<int> */
+    public function backoff(): array
+    {
+        return [30, 120, 300];
+    }
+
+    public function failed(Throwable $exception): void
+    {
+        Notification::query()
+            ->whereKey($this->notification->getKey())
+            ->whereNull('sent_at')
+            ->update(['failed_at' => now()]);
     }
 }

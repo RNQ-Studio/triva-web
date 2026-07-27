@@ -17,14 +17,16 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolePermissionSeeder::class,
             AdminUserSeeder::class,
+            DeveloperAdminSeeder::class,
             CategorySeeder::class,
             AppConfigSeeder::class,
             VehicleMakeSeeder::class,
             VehicleModelSeeder::class,
+            ToyotaServiceMasterSeeder::class,
         ]);
 
         // Region data (249,036 records) is opt-in to avoid slow default seeds.
-        if (filter_var(env('SEED_REGIONS', false), FILTER_VALIDATE_BOOLEAN)) {
+        if (config('app.seed_regions', false)) {
             $this->call(RegionSeeder::class);
         }
     }

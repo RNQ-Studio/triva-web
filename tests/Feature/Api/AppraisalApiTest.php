@@ -79,6 +79,32 @@ class AppraisalApiTest extends TestCase
         $this->putJson('/api/v1/vehicles/'.$vehicleId, $this->vehiclePayload())->assertForbidden();
     }
 
+    public function test_vehicle_list_is_stable_across_equal_timestamp_pages(): void
+    {
+        $ids = [
+            '00000000-0000-4000-8000-000000000001',
+            '00000000-0000-4000-8000-000000000002',
+        ];
+
+        foreach ($ids as $index => $id) {
+            Vehicle::factory()->create([
+                'id' => $id,
+                'user_id' => $this->customer->getKey(),
+                'license_plate' => "L 120{$index} TRV",
+                'updated_at' => now()->startOfSecond(),
+            ]);
+        }
+
+        Passport::actingAs($this->customer);
+
+        $this->getJson('/api/v1/vehicles?per_page=1&page=1')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $ids[1]);
+        $this->getJson('/api/v1/vehicles?per_page=1&page=2')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $ids[0]);
+    }
+
     public function test_appraisal_submit_requires_complete_condition_and_exactly_five_owned_photos(): void
     {
         Passport::actingAs($this->customer);

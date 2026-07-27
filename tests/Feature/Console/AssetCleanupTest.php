@@ -3,6 +3,8 @@
 namespace Tests\Feature\Console;
 
 use App\Models\Asset;
+use App\Models\ToyotaServiceBooking;
+use App\Models\ToyotaServiceBookingPhoto;
 use App\Support\Enums\AssetStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
@@ -85,5 +87,42 @@ class AssetCleanupTest extends TestCase
 
         $active->refresh();
         $this->assertSame(AssetStatus::Active, $active->status);
+    }
+
+    public function test_orphan_toyota_photo_cleanup_only_releases_old_unattached_uploads(): void
+    {
+        $orphan = Asset::factory()->protected()->create([
+            'category' => 'toyota-service-photo',
+            'created_at' => now()->subDays(8),
+        ]);
+        $recent = Asset::factory()->protected()->create([
+            'category' => 'toyota-service-photo',
+            'created_at' => now()->subDays(2),
+        ]);
+        $attached = Asset::factory()->protected()->create([
+            'category' => 'toyota-service-photo',
+            'created_at' => now()->subDays(8),
+        ]);
+        $booking = ToyotaServiceBooking::factory()->create();
+        $photo = new ToyotaServiceBookingPhoto(['asset_id' => $attached->getKey()]);
+        $photo->booking()->associate($booking);
+        $photo->save();
+
+        $this->artisan('assets:cleanup-orphan-toyota-service-photos')
+            ->expectsOutput('Soft-deleted 1 orphan Toyota service photo(s).')
+            ->assertSuccessful();
+
+        $orphan->refresh();
+        $this->assertSame(AssetStatus::SoftDeleted, $orphan->status);
+        $this->assertFalse($orphan->is_protected);
+        $this->assertNotNull($orphan->scheduled_hard_delete_at);
+
+        $recent->refresh();
+        $this->assertSame(AssetStatus::Active, $recent->status);
+        $this->assertTrue($recent->is_protected);
+
+        $attached->refresh();
+        $this->assertSame(AssetStatus::Active, $attached->status);
+        $this->assertTrue($attached->is_protected);
     }
 }

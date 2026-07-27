@@ -109,6 +109,18 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail, OAu
         return $this->hasMany(Appraisal::class);
     }
 
+    /** @return HasMany<ToyotaServiceBooking, $this> */
+    public function toyotaServiceBookings(): HasMany
+    {
+        return $this->hasMany(ToyotaServiceBooking::class);
+    }
+
+    /** @return HasMany<ToyotaServiceBooking, $this> */
+    public function assignedToyotaServiceBookings(): HasMany
+    {
+        return $this->hasMany(ToyotaServiceBooking::class, 'assigned_service_advisor_id');
+    }
+
     /** @return HasMany<CustomerConsent, $this> */
     public function consents(): HasMany
     {

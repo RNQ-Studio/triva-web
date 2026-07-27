@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\UserExcelController;
+use App\Http\Controllers\Api\V1\AdminToyotaServiceBookingController;
 use App\Http\Controllers\Api\V1\AppController;
 use App\Http\Controllers\Api\V1\AppraisalController;
 use App\Http\Controllers\Api\V1\ArticleController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\Api\V1\PasswordResetController;
 use App\Http\Controllers\Api\V1\QuoteController;
 use App\Http\Controllers\Api\V1\RegionController;
 use App\Http\Controllers\Api\V1\TagController;
+use App\Http\Controllers\Api\V1\ToyotaServiceController;
 use App\Http\Controllers\Api\V1\VehicleController;
 use App\Http\Controllers\Api\V1\VehicleMakeController;
 use App\Http\Controllers\Webhook\GithubDeployWebhookController;
@@ -78,6 +80,8 @@ Route::prefix('v1')->group(function (): void {
             Route::post('change-password', [AuthController::class, 'changePassword']);
             Route::post('logout', [AuthController::class, 'logout']);
             Route::post('logout-all', [AuthController::class, 'logoutAll']);
+            Route::post('device', [AuthController::class, 'updateDevice'])
+                ->middleware('throttle:30,1');
             Route::post('phone', [OtpController::class, 'updatePhone']);
             Route::post('phone/verify', [OtpController::class, 'verifyPhone']);
         });
@@ -109,6 +113,45 @@ Route::prefix('v1')->group(function (): void {
             ->middleware('throttle:10,1');
         Route::post('appraisals/{appraisal}/decision', [AppraisalController::class, 'decision']);
         Route::post('appraisals/{appraisal}/schedule-inspection', [AppraisalController::class, 'scheduleInspection']);
+
+        Route::prefix('toyota-service')->group(function (): void {
+            Route::get('options', [ToyotaServiceController::class, 'options'])
+                ->middleware('throttle:60,1');
+            Route::get('availability', [ToyotaServiceController::class, 'availability'])
+                ->middleware('throttle:60,1');
+            Route::get('bookings', [ToyotaServiceController::class, 'index']);
+            Route::post('bookings', [ToyotaServiceController::class, 'store'])
+                ->middleware('throttle:10,1');
+            Route::get('bookings/{booking}', [ToyotaServiceController::class, 'show']);
+            Route::post(
+                'bookings/{booking}/accept-alternative',
+                [ToyotaServiceController::class, 'acceptAlternative'],
+            );
+            Route::post(
+                'bookings/{booking}/reject-alternative',
+                [ToyotaServiceController::class, 'rejectAlternative'],
+            );
+            Route::post(
+                'bookings/{booking}/reschedule',
+                [ToyotaServiceController::class, 'reschedule'],
+            );
+            Route::post(
+                'bookings/{booking}/cancel',
+                [ToyotaServiceController::class, 'cancel'],
+            );
+        });
+
+        Route::prefix('admin/toyota-service')->group(function (): void {
+            Route::get('options', [AdminToyotaServiceBookingController::class, 'options']);
+            Route::prefix('bookings')->group(function (): void {
+                Route::get('/', [AdminToyotaServiceBookingController::class, 'index']);
+                Route::get('{booking}', [AdminToyotaServiceBookingController::class, 'show']);
+                Route::post(
+                    '{booking}/actions',
+                    [AdminToyotaServiceBookingController::class, 'action'],
+                )->middleware('throttle:30,1');
+            });
+        });
 
         Route::apiResource('categories', CategoryController::class);
         Route::apiResource('articles', ArticleController::class);

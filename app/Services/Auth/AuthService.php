@@ -134,13 +134,25 @@ class AuthService
     }
 
     /**
-     * @param  array{device_id: string, platform: string, os_version?: string|null, app_version?: string|null, device_name?: string|null, push_token?: string|null}  $deviceInfo
+     * @param  array{device_id: string, platform: string, os_version?: string|null, app_version?: string|null, app_build?: string|null, device_name?: string|null, push_token?: string|null}  $deviceInfo
      */
-    private function upsertDevice(User $user, array $deviceInfo): void
+    public function upsertDevice(User $user, array $deviceInfo): UserDevice
     {
-        DB::transaction(function () use ($user, $deviceInfo) {
+        return DB::transaction(function () use ($user, $deviceInfo): UserDevice {
+            $pushToken = $deviceInfo['push_token'] ?? null;
+            if ($pushToken !== null) {
+                UserDevice::query()
+                    ->where('push_token', $pushToken)
+                    ->where(function ($query) use ($user, $deviceInfo): void {
+                        $query->where('user_id', '!=', $user->getKey())
+                            ->orWhere('device_id', '!=', $deviceInfo['device_id']);
+                    })
+                    ->lockForUpdate()
+                    ->update(['push_token' => null]);
+            }
+
             try {
-                UserDevice::query()->updateOrCreate(
+                $device = UserDevice::query()->updateOrCreate(
                     [
                         'user_id' => $user->getKey(),
                         'device_id' => $deviceInfo['device_id'],
@@ -149,6 +161,7 @@ class AuthService
                         'platform' => $deviceInfo['platform'],
                         'os_version' => $deviceInfo['os_version'] ?? null,
                         'app_version' => $deviceInfo['app_version'] ?? null,
+                        'app_build' => $deviceInfo['app_build'] ?? null,
                         'device_name' => $deviceInfo['device_name'] ?? null,
                         'push_token' => $deviceInfo['push_token'] ?? null,
                         'last_active_at' => now(),
@@ -162,12 +175,20 @@ class AuthService
                         'platform' => $deviceInfo['platform'],
                         'os_version' => $deviceInfo['os_version'] ?? null,
                         'app_version' => $deviceInfo['app_version'] ?? null,
+                        'app_build' => $deviceInfo['app_build'] ?? null,
                         'device_name' => $deviceInfo['device_name'] ?? null,
                         'push_token' => $deviceInfo['push_token'] ?? null,
                         'last_active_at' => now(),
                         'updated_at' => now(),
                     ]);
+
+                $device = UserDevice::query()
+                    ->where('user_id', $user->getKey())
+                    ->where('device_id', $deviceInfo['device_id'])
+                    ->firstOrFail();
             }
+
+            return $device;
         });
     }
 

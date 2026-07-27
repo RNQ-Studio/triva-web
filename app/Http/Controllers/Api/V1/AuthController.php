@@ -9,6 +9,7 @@ use App\Http\Requests\Api\V1\GoogleLoginRequest;
 use App\Http\Requests\Api\V1\LoginRequest;
 use App\Http\Requests\Api\V1\RefreshTokenRequest;
 use App\Http\Requests\Api\V1\RegisterRequest;
+use App\Http\Requests\Api\V1\UpdateDeviceRequest;
 use App\Http\Requests\Api\V1\UpdateProfileRequest;
 use App\Http\Resources\Api\V1\UserResource;
 use App\Models\Asset;
@@ -38,6 +39,20 @@ class AuthController extends Controller
         private readonly AssetUploadService $assetUploadService,
         private readonly AssetDeletionService $assetDeletionService,
     ) {}
+
+    public function updateDevice(UpdateDeviceRequest $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $device = $this->authService->upsertDevice($user, $request->validated());
+
+        return ApiResponse::success([
+            'device_id' => $device->device_id,
+            'platform' => $device->platform->value,
+            'push_enabled' => $device->push_token !== null,
+            'updated_at' => $device->updated_at?->toIso8601String(),
+        ], 'Device registration updated.');
+    }
 
     /**
      * @unauthenticated

@@ -67,6 +67,8 @@ return [
 
     'timezone' => 'UTC',
 
+    'seed_regions' => (bool) env('SEED_REGIONS', false),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

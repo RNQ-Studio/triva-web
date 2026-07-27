@@ -147,6 +147,9 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            // Keep timestamptz reads/writes deterministic even when the
+            // PostgreSQL server itself uses a regional timezone.
+            'timezone' => env('DB_TIMEZONE', '+00:00'),
         ],
 
         'sqlsrv' => [

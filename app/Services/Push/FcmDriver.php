@@ -3,9 +3,9 @@
 namespace App\Services\Push;
 
 use Kreait\Firebase\Contract\Messaging;
+use Kreait\Firebase\Exception\Messaging\NotFound;
 use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Messaging\Notification;
-use Throwable;
 
 class FcmDriver implements FcmDriverInterface
 {
@@ -25,7 +25,7 @@ class FcmDriver implements FcmDriverInterface
             $this->messaging->send($message);
 
             return true;
-        } catch (Throwable) {
+        } catch (NotFound) {
             return false;
         }
     }
