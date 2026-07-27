@@ -471,6 +471,7 @@
                 Laravel Starter &mdash; v{{ app()->version() }}
             </p>
             <div class="flex items-center gap-6">
+                <a href="{{ route('privacy-policy') }}" class="text-sm text-gray-500 transition-colors hover:text-blue-600">Kebijakan Privasi</a>
                 <a href="/admin" class="text-sm text-gray-500 transition-colors hover:text-blue-600">Admin Panel</a>
                 <a href="/docs/api" class="text-sm text-gray-500 transition-colors hover:text-blue-600">API Docs</a>
                 <a href="https://laravel.com/docs" target="_blank" rel="noopener" class="text-sm text-gray-500 transition-colors hover:text-blue-600">Laravel Docs</a>
