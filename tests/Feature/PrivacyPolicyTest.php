@@ -16,7 +16,12 @@ class PrivacyPolicyTest extends TestCase
             ->assertSee('RNQ Studio')
             ->assertSee('Data yang dikumpulkan')
             ->assertSee('Penghapusan akun')
+            ->assertSee('images/triva-mark.png')
+            ->assertSee('apple-touch-icon-precomposed.png')
             ->assertSee('ramadhanrp.developer@gmail.com');
+
+        $this->assertFileExists(public_path('apple-touch-icon.png'));
+        $this->assertFileExists(public_path('images/triva-mark.png'));
     }
 
     public function test_short_privacy_url_redirects_to_the_policy(): void
