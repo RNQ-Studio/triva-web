@@ -100,6 +100,10 @@ class AppraisalAiFallbackTest extends TestCase
             self::assertSame('json_schema', $request['text']['format']['type']);
             self::assertTrue($request['text']['format']['strict']);
         }
+        self::assertStringContainsString(
+            'halaman hasil OLX bergeser',
+            $openAiRequests[1][0]['input'][0]['content'],
+        );
     }
 
     public function test_ai_agents_are_not_called_when_olx_already_has_enough_data(): void
