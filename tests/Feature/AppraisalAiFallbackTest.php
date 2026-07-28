@@ -128,6 +128,48 @@ class AppraisalAiFallbackTest extends TestCase
         ));
     }
 
+    public function test_search_result_page_can_ground_multiple_distinct_listings(): void
+    {
+        $this->activateSource('olx_approved_html');
+        $this->activateSource('openai_market_research');
+        $searchUrl = 'https://www.olx.co.id/surabaya-kota_g4000216/mobil_c86/q-avanza-2022';
+        $candidates = collect($this->candidates(8))
+            ->map(fn (array $candidate, int $index): array => [
+                ...$candidate,
+                'source_url' => $searchUrl,
+                'source_title' => 'Toyota Avanza 1.5 G MT 2022 unit '.($index + 1),
+                'transmission' => 'manual',
+                'mileage' => null,
+            ])
+            ->all();
+        Http::fake([
+            'https://www.olx.co.id/*' => Http::response(
+                '<html><body>Tidak ada hasil</body></html>',
+                200,
+                ['Content-Type' => 'text/html'],
+            ),
+            'https://api.openai.com/v1/responses' => Http::sequence()
+                ->push($this->researchResponse($candidates, [$searchUrl]), 200)
+                ->push($this->reviewResponse($candidates), 200),
+        ]);
+        $appraisal = $this->appraisal();
+        $appraisal->vehicle()->update(['transmission' => 'manual']);
+
+        $estimate = app(AppraisalMarketDataService::class)->process($appraisal);
+
+        self::assertSame(AppraisalMarketEstimateStatus::Ready, $estimate->status);
+        self::assertSame(8, $estimate->comparable_count);
+        self::assertSame(AppraisalStatus::ResultReady, $appraisal->refresh()->status);
+        $this->assertDatabaseCount('appraisal_market_comparables', 8);
+        $this->assertDatabaseCount('appraisal_comparables', 8);
+        self::assertSame(
+            8,
+            $appraisal->aiAgentRuns()
+                ->where('phase', 'review')
+                ->value('accepted_count'),
+        );
+    }
+
     public function test_candidate_without_a_consulted_source_is_never_used_even_if_ai_accepts_it(): void
     {
         $this->activateSource('olx_approved_html');

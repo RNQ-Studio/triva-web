@@ -38,7 +38,7 @@ return [
         'review_model' => env('APPRAISAL_AI_REVIEW_MODEL', 'gpt-5.6-sol'),
         'reasoning_effort' => env('APPRAISAL_AI_REASONING_EFFORT', 'low'),
         'max_output_tokens' => (int) env('APPRAISAL_AI_MAX_OUTPUT_TOKENS', 6000),
-        'prompt_version' => 'appraisal_market_agents_v1',
+        'prompt_version' => 'appraisal_market_agents_v2',
         'openai' => [
             'api_key' => env('OPENAI_API_KEY'),
             'organization' => env('OPENAI_ORGANIZATION'),
