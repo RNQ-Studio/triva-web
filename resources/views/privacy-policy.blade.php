@@ -32,7 +32,158 @@
             background:
                 radial-gradient(circle at 8% 0%, rgba(7, 88, 181, 0.09), transparent 30rem),
                 linear-gradient(180deg, #f7f9fc 0, #ffffff 34rem);
+            color: #0f172a;
+            font-family: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
             overflow-x: hidden;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        img {
+            display: block;
+            max-width: 100%;
+        }
+
+        .privacy-header {
+            backdrop-filter: blur(18px);
+            background: rgba(255, 255, 255, 0.92);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .privacy-header__inner {
+            align-items: center;
+            display: flex;
+            height: 4.5rem;
+            justify-content: space-between;
+            margin: 0 auto;
+            max-width: 80rem;
+            padding: 0 2rem;
+        }
+
+        .privacy-brand {
+            align-items: center;
+            color: inherit;
+            display: flex;
+            gap: 0.8rem;
+            min-width: 0;
+            text-decoration: none;
+        }
+
+        .privacy-brand__logo {
+            flex: 0 0 auto;
+            height: 2.25rem;
+            object-fit: contain;
+            width: 4.5rem;
+        }
+
+        .privacy-brand__label {
+            border-left: 1px solid #e2e8f0;
+            color: #64748b;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding-left: 0.8rem;
+        }
+
+        .delete-shortcut {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 999px;
+            color: #1e40af;
+            flex: 0 0 auto;
+            font-size: 0.875rem;
+            font-weight: 800;
+            padding: 0.58rem 1rem;
+            text-decoration: none;
+            transition: background-color 160ms ease, border-color 160ms ease;
+        }
+
+        .delete-shortcut:hover {
+            background: #dbeafe;
+            border-color: #93c5fd;
+        }
+
+        .delete-shortcut__mobile {
+            display: none;
+        }
+
+        .privacy-hero {
+            border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+        }
+
+        .privacy-container {
+            margin: 0 auto;
+            max-width: 80rem;
+            padding-left: 2rem;
+            padding-right: 2rem;
+        }
+
+        .privacy-hero__inner {
+            padding-bottom: 4.25rem;
+            padding-top: 4.25rem;
+        }
+
+        .privacy-hero__copy {
+            max-width: 48rem;
+        }
+
+        .privacy-eyebrow {
+            align-items: center;
+            background: #ffffff;
+            border: 1px solid #bfdbfe;
+            border-radius: 999px;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+            color: #1d4ed8;
+            display: inline-flex;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            margin: 0 0 1.25rem;
+            padding: 0.4rem 0.8rem;
+            text-transform: uppercase;
+        }
+
+        .privacy-title {
+            color: #020617;
+            font-size: clamp(2.5rem, 4vw, 3.5rem);
+            font-weight: 850;
+            letter-spacing: -0.045em;
+            line-height: 1.05;
+            margin: 0;
+        }
+
+        .privacy-title span {
+            color: #0758b5;
+        }
+
+        .privacy-intro {
+            color: #475569;
+            font-size: 1.08rem;
+            line-height: 1.75;
+            margin: 1.35rem 0 0;
+            max-width: 46rem;
+        }
+
+        .policy-meta {
+            align-items: center;
+            color: #64748b;
+            display: flex;
+            flex-wrap: wrap;
+            font-size: 0.875rem;
+            gap: 0.5rem 1.5rem;
+            margin-top: 1.6rem;
+        }
+
+        .policy-meta strong {
+            color: #334155;
+            font-weight: 750;
         }
 
         .policy-copy > section {
@@ -131,11 +282,238 @@
         }
 
         .commitment-strip {
+            display: grid;
+            gap: 0.9rem;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            margin-top: 2.5rem;
             scrollbar-width: none;
         }
 
         .commitment-strip::-webkit-scrollbar {
             display: none;
+        }
+
+        .commitment-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 1rem;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.07);
+            min-width: 0;
+            padding: 1.15rem 1.25rem;
+        }
+
+        .commitment-card span {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            line-height: 1.4;
+            text-transform: uppercase;
+        }
+
+        .commitment-card:nth-child(1) span {
+            color: #047857;
+        }
+
+        .commitment-card:nth-child(2) span {
+            color: #1d4ed8;
+        }
+
+        .commitment-card:nth-child(3) span {
+            color: #b45309;
+        }
+
+        .commitment-card p {
+            color: #1e293b;
+            font-size: 0.9rem;
+            font-weight: 750;
+            line-height: 1.55;
+            margin: 0.55rem 0 0;
+        }
+
+        .policy-layout {
+            display: grid;
+            gap: 3.5rem;
+            grid-template-columns: 17rem minmax(0, 1fr);
+            margin: 0 auto;
+            max-width: 80rem;
+            padding: 5rem 2rem;
+        }
+
+        .policy-sidebar {
+            align-self: start;
+            position: sticky;
+            top: 6rem;
+        }
+
+        .policy-toc {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 1rem;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.07);
+            overflow: hidden;
+        }
+
+        .policy-toc-links {
+            display: grid;
+            gap: 0.18rem;
+            padding: 0.75rem;
+        }
+
+        .policy-toc-links a {
+            border-radius: 0.75rem;
+            color: #475569;
+            font-size: 0.875rem;
+            font-weight: 650;
+            line-height: 1.35;
+            padding: 0.68rem 0.75rem;
+            text-decoration: none;
+            transition: background-color 150ms ease, color 150ms ease;
+        }
+
+        .policy-toc-links a:hover {
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+
+        .policy-toc-links a[href="#penghapusan-akun"] {
+            background: #eff6ff;
+            color: #1e40af;
+        }
+
+        .policy-copy {
+            max-width: 48rem;
+            min-width: 0;
+            width: 100%;
+        }
+
+        .policy-copy > section > p:first-child {
+            color: #1d4ed8;
+            font-size: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            margin: 0;
+            text-transform: uppercase;
+        }
+
+        .policy-copy h2 {
+            margin: 0.7rem 0 0;
+        }
+
+        .deletion-card {
+            background: #f3f8ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 1.5rem;
+            box-shadow: 0 1px 3px rgba(30, 64, 175, 0.08);
+            padding: 2rem;
+            scroll-margin-top: 7rem;
+        }
+
+        .policy-button {
+            align-items: center;
+            background: #0758b5;
+            border-radius: 0.75rem;
+            color: #ffffff !important;
+            display: inline-flex;
+            font-size: 0.875rem;
+            font-weight: 800;
+            justify-content: center;
+            margin-top: 1.5rem;
+            padding: 0.8rem 1.25rem;
+            text-align: center;
+            text-decoration: none !important;
+        }
+
+        .policy-button:hover {
+            background: #064993;
+        }
+
+        .contact-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 1rem;
+            margin-top: 1.25rem;
+            padding: 1.4rem;
+        }
+
+        .contact-card p {
+            overflow-wrap: anywhere;
+        }
+
+        .back-to-top {
+            border-top: 1px solid #e2e8f0;
+            margin-top: 3.5rem;
+            padding-top: 2rem;
+        }
+
+        .privacy-footer {
+            background: #020617;
+            border-top: 1px solid #1e293b;
+            color: #cbd5e1;
+        }
+
+        .privacy-footer__inner {
+            align-items: center;
+            display: flex;
+            gap: 2rem;
+            justify-content: space-between;
+            margin: 0 auto;
+            max-width: 80rem;
+            padding: 1.75rem 2rem;
+        }
+
+        .privacy-footer__brand {
+            align-items: center;
+            display: flex;
+            gap: 0.8rem;
+            min-width: 0;
+        }
+
+        .privacy-footer__logo-box {
+            align-items: center;
+            background: #ffffff;
+            border-radius: 0.6rem;
+            display: inline-flex;
+            flex: 0 0 auto;
+            height: 2.25rem;
+            justify-content: center;
+            overflow: hidden;
+            padding: 0.3rem 0.55rem;
+            width: 5.25rem;
+        }
+
+        .privacy-footer__logo {
+            height: auto;
+            max-height: 1.6rem;
+            object-fit: contain;
+            width: 4.3rem;
+        }
+
+        .privacy-footer__copyright {
+            color: #cbd5e1;
+            font-size: 0.875rem;
+            font-weight: 650;
+            margin: 0;
+            white-space: nowrap;
+        }
+
+        .privacy-footer__links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.65rem 1.25rem;
+            justify-content: flex-end;
+        }
+
+        .privacy-footer__links a {
+            color: #94a3b8;
+            font-size: 0.875rem;
+            font-weight: 650;
+            text-decoration: none;
+        }
+
+        .privacy-footer__links a:hover,
+        .privacy-footer__links a[aria-current="page"] {
+            color: #ffffff;
         }
 
         @media (min-width: 1024px) {
@@ -148,11 +526,89 @@
             }
         }
 
+        @media (max-width: 1023px) {
+            .policy-layout {
+                display: block;
+                padding-bottom: 4rem;
+                padding-top: 3rem;
+            }
+
+            .policy-sidebar {
+                margin-bottom: 2.5rem;
+                position: static;
+            }
+
+            .policy-copy {
+                max-width: 46rem;
+            }
+        }
+
         @media (max-width: 639px) {
+            .privacy-header__inner {
+                height: 4rem;
+                padding: 0 1rem;
+            }
+
+            .privacy-brand__logo {
+                height: 1.9rem;
+                width: 3.9rem;
+            }
+
+            .privacy-brand__label,
+            .delete-shortcut__desktop {
+                display: none;
+            }
+
+            .delete-shortcut__mobile {
+                display: inline;
+            }
+
+            .delete-shortcut {
+                font-size: 0.75rem;
+                padding: 0.5rem 0.75rem;
+            }
+
+            .privacy-container,
+            .policy-layout {
+                padding-left: 1.25rem;
+                padding-right: 1.25rem;
+            }
+
+            .privacy-hero__inner {
+                padding-bottom: 3rem;
+                padding-top: 3rem;
+            }
+
+            .privacy-eyebrow {
+                font-size: 0.64rem;
+                margin-bottom: 1rem;
+                padding: 0.35rem 0.7rem;
+            }
+
+            .privacy-title {
+                font-size: clamp(2.15rem, 11vw, 2.75rem);
+                line-height: 1.08;
+            }
+
+            .privacy-intro {
+                font-size: 1rem;
+                line-height: 1.65;
+                margin-top: 1.1rem;
+            }
+
+            .policy-meta {
+                align-items: flex-start;
+                flex-direction: column;
+                font-size: 0.8rem;
+                gap: 0.3rem;
+                margin-top: 1.35rem;
+            }
+
             .commitment-strip {
                 display: flex;
                 margin-left: -1.25rem;
                 margin-right: -1.25rem;
+                margin-top: 2rem;
                 overflow-x: auto;
                 padding: 0 1.25rem 0.5rem;
                 scroll-padding-left: 1.25rem;
@@ -175,12 +631,31 @@
             .policy-copy p {
                 line-height: 1.72;
             }
+
+            .deletion-card {
+                padding: 1.35rem;
+            }
+
+            .policy-button {
+                width: 100%;
+            }
+
+            .privacy-footer__inner {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 1.25rem;
+                padding: 1.5rem 1.25rem;
+            }
+
+            .privacy-footer__links {
+                justify-content: flex-start;
+            }
         }
 
         @media print {
-            header,
-            aside,
-            footer,
+            .privacy-header,
+            .policy-sidebar,
+            .privacy-footer,
             .no-print {
                 display: none !important;
             }
@@ -200,34 +675,34 @@
     </style>
 </head>
 <body id="top" class="min-h-screen text-slate-900 antialiased">
-    <header class="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
-        <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:h-18 sm:px-8">
-            <a href="/" class="flex min-w-0 items-center gap-3 rounded-xl py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2" aria-label="TRIVA — kembali ke beranda">
-                <img src="{{ asset('images/triva-mark.png') }}" alt="TRIVA" class="h-8 w-auto shrink-0 sm:h-9">
-                <span class="hidden border-l border-slate-200 pl-3 text-xs font-bold text-slate-500 sm:block">Pusat Privasi</span>
+    <header class="privacy-header">
+        <div class="privacy-header__inner">
+            <a href="/" class="privacy-brand" aria-label="TRIVA — kembali ke beranda">
+                <img src="{{ asset('images/triva-mark.png') }}" alt="TRIVA" class="privacy-brand__logo">
+                <span class="privacy-brand__label">Pusat Privasi</span>
             </a>
 
-            <a href="#penghapusan-akun" class="inline-flex shrink-0 items-center rounded-full border border-blue-200 bg-blue-50 px-3.5 py-2 text-xs font-extrabold text-blue-800 transition hover:border-blue-300 hover:bg-blue-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 sm:px-4 sm:text-sm">
-                <span class="sm:hidden">Hapus akun</span>
-                <span class="hidden sm:inline">Penghapusan akun</span>
+            <a href="#penghapusan-akun" class="delete-shortcut">
+                <span class="delete-shortcut__mobile">Hapus akun</span>
+                <span class="delete-shortcut__desktop">Penghapusan akun</span>
             </a>
         </div>
     </header>
 
     <main>
-        <section class="border-b border-slate-200/80">
-            <div class="mx-auto max-w-7xl px-5 pb-12 pt-12 sm:px-8 sm:pb-16 sm:pt-16 lg:pb-20 lg:pt-20">
-                <div class="max-w-3xl">
-                    <p class="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white px-3 py-1.5 text-[0.68rem] font-extrabold uppercase tracking-[0.14em] text-blue-700 shadow-sm sm:mb-5 sm:px-3.5 sm:text-xs">
+        <section class="privacy-hero">
+            <div class="privacy-container privacy-hero__inner">
+                <div class="privacy-hero__copy">
+                    <p class="privacy-eyebrow">
                         Privasi &amp; keamanan data
                     </p>
-                    <h1 class="text-3xl font-black tracking-[-0.04em] text-slate-950 sm:text-5xl lg:text-6xl">
-                        Kebijakan Privasi <span class="text-[#0758b5]">TRIVA</span>
+                    <h1 class="privacy-title">
+                        Kebijakan Privasi <span>TRIVA</span>
                     </h1>
-                    <p class="mt-5 max-w-2xl text-base leading-7 text-slate-600 sm:mt-6 sm:text-lg sm:leading-8">
+                    <p class="privacy-intro">
                         Kebijakan ini menjelaskan bagaimana aplikasi TRIVA, yang dikembangkan dan dikelola oleh RNQ Studio, mengakses, mengumpulkan, menggunakan, membagikan, melindungi, dan menyimpan data Anda.
                     </p>
-                    <div class="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500 sm:mt-7 sm:text-sm">
+                    <div class="policy-meta">
                         <span><strong class="font-bold text-slate-700">Berlaku sejak:</strong> 28 Juli 2026</span>
                         <span><strong class="font-bold text-slate-700">Versi:</strong> 1.0</span>
                     </div>
@@ -250,9 +725,9 @@
             </div>
         </section>
 
-        <div class="mx-auto grid max-w-7xl gap-8 px-5 py-10 sm:px-8 sm:py-14 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-14 lg:py-20">
-            <aside class="self-start lg:sticky lg:top-24" aria-label="Daftar isi">
-                <details class="policy-toc overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div class="policy-layout">
+            <aside class="policy-sidebar" aria-label="Daftar isi">
+                <details class="policy-toc">
                     <summary class="text-sm font-extrabold text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-600">
                         <span>Daftar isi</span>
                         <span class="flex items-center gap-2 text-xs font-bold text-slate-500">
@@ -275,7 +750,7 @@
                 </details>
             </aside>
 
-            <article class="policy-copy min-w-0 max-w-3xl lg:pt-1">
+            <article class="policy-copy">
                 <section id="ruang-lingkup">
                     <p class="!mt-0 text-sm font-extrabold uppercase tracking-[0.15em] text-blue-700">01 — Ruang lingkup</p>
                     <h2 class="!mt-3">Tentang kebijakan ini</h2>
@@ -391,7 +866,7 @@
                     </p>
                 </section>
 
-                <section id="penghapusan-akun" class="scroll-mt-28 rounded-3xl border border-blue-200 bg-[#f3f8ff] p-5 shadow-sm sm:p-8">
+                <section id="penghapusan-akun" class="deletion-card">
                     <p class="!mt-0 text-sm font-extrabold uppercase tracking-[0.15em] text-blue-700">07 — Penghapusan akun</p>
                     <h2 class="!mt-3">Minta akun dan data TRIVA dihapus</h2>
                     <p>
@@ -407,7 +882,7 @@
                     </p>
                     <a
                         href="mailto:ramadhanrp.developer@gmail.com?subject=Permintaan%20Penghapusan%20Akun%20TRIVA&body=Nama%3A%0AEmail%20akun%20TRIVA%3A%0ANomor%20telepon%20akun%20TRIVA%3A%0A%0ASaya%20meminta%20penghapusan%20akun%20dan%20data%20terkait%20di%20TRIVA."
-                        class="policy-button mt-6 inline-flex w-full items-center justify-center rounded-xl bg-[#0758b5] px-5 py-3 text-center text-sm font-extrabold text-white shadow-lg shadow-blue-900/10 transition hover:bg-[#064993] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 sm:w-auto"
+                        class="policy-button"
                     >
                         Kirim permintaan penghapusan
                     </a>
@@ -438,31 +913,31 @@
                     <p>
                         Untuk pertanyaan, permintaan hak data, atau laporan terkait privasi dan keamanan aplikasi TRIVA, hubungi:
                     </p>
-                    <div class="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:p-6">
+                    <div class="contact-card">
                         <p class="!mt-0 font-bold text-slate-900">Tim Privasi TRIVA — RNQ Studio</p>
                         <p class="!mt-2 break-words">Email: <a class="break-all" href="mailto:ramadhanrp.developer@gmail.com">ramadhanrp.developer@gmail.com</a></p>
                         <p class="!mt-2">Situs: <a href="{{ url('/') }}">{{ parse_url(config('app.url'), PHP_URL_HOST) ?: 'triva.ramadhanrosihadi.web.id' }}</a></p>
                     </div>
                 </section>
 
-                <div class="no-print mt-14 border-t border-slate-200 pt-8">
+                <div class="back-to-top no-print">
                     <a href="#top" class="text-sm">Kembali ke atas ↑</a>
                 </div>
             </article>
         </div>
     </main>
 
-    <footer class="border-t border-slate-200 bg-slate-950">
-        <div class="mx-auto flex max-w-7xl flex-col gap-6 px-5 py-8 text-sm sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-9">
-            <div class="flex items-center gap-3">
-                <span class="inline-flex rounded-lg bg-white px-2 py-1.5">
-                    <img src="{{ asset('images/triva-mark.png') }}" alt="TRIVA" class="h-6 w-auto">
+    <footer class="privacy-footer">
+        <div class="privacy-footer__inner">
+            <div class="privacy-footer__brand">
+                <span class="privacy-footer__logo-box">
+                    <img src="{{ asset('images/triva-mark.png') }}" alt="TRIVA" class="privacy-footer__logo">
                 </span>
-                <p class="font-semibold text-slate-300">© {{ date('Y') }} RNQ Studio</p>
+                <p class="privacy-footer__copyright">© {{ date('Y') }} RNQ Studio</p>
             </div>
-            <div class="flex flex-wrap gap-x-5 gap-y-2 sm:justify-end">
+            <div class="privacy-footer__links">
                 <a href="/" class="font-semibold text-slate-400 transition hover:text-white">Beranda</a>
-                <a href="{{ route('privacy-policy') }}" class="font-semibold text-white">Kebijakan Privasi</a>
+                <a href="{{ route('privacy-policy') }}" aria-current="page">Kebijakan Privasi</a>
                 <a href="#penghapusan-akun" class="font-semibold text-slate-400 transition hover:text-white">Penghapusan Akun</a>
             </div>
         </div>

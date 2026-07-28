@@ -18,6 +18,9 @@ class PrivacyPolicyTest extends TestCase
             ->assertSee('Penghapusan akun')
             ->assertSee('images/triva-mark.png')
             ->assertSee('apple-touch-icon-precomposed.png')
+            ->assertSee('privacy-title')
+            ->assertSee('privacy-footer__logo')
+            ->assertSee('grid-template-columns: repeat(3, minmax(0, 1fr))', false)
             ->assertSee('ramadhanrp.developer@gmail.com');
 
         $this->assertFileExists(public_path('apple-touch-icon.png'));
