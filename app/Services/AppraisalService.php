@@ -205,14 +205,22 @@ class AppraisalService
                 throw new AppraisalConflictException('Ganti seluruh foto yang ditolak sebelum mengirim ulang.');
             }
 
-            $locked->update(['status' => AppraisalStatus::UnderAppraiserReview]);
+            $locked->update([
+                'status' => AppraisalStatus::CollectingMarketData,
+                'assigned_appraiser_id' => null,
+            ]);
             $this->history(
                 $locked,
-                AppraisalStatus::UnderAppraiserReview,
+                AppraisalStatus::CollectingMarketData,
                 'Perbaikan diterima',
-                'Foto pengganti diterima dan kembali diproses appraiser.',
+                'Foto pengganti diterima dan pemrosesan otomatis dijalankan ulang.',
                 $user,
             );
+
+            DB::afterCommit(fn () => ProcessAppraisalMarketData::dispatch(
+                $locked->getKey(),
+                true,
+            )->onQueue((string) config('appraisal.market_data.queue')));
         });
 
         return $this->loadCustomerRelations($appraisal->refresh());

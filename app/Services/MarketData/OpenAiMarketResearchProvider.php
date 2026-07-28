@@ -175,7 +175,7 @@ class OpenAiMarketResearchProvider implements MarketDataProvider
                 'search_context_size' => $this->searchContextSize($source),
                 'filters' => ['allowed_domains' => $allowedDomains],
             ]],
-            'tool_choice' => 'auto',
+            'tool_choice' => 'required',
             'include' => ['web_search_call.action.sources'],
             'input' => [
                 [
@@ -236,7 +236,7 @@ class OpenAiMarketResearchProvider implements MarketDataProvider
                 'search_context_size' => $this->searchContextSize($source),
                 'filters' => ['allowed_domains' => $allowedDomains],
             ]],
-            'tool_choice' => 'auto',
+            'tool_choice' => 'required',
             'include' => ['web_search_call.action.sources'],
             'input' => [
                 [

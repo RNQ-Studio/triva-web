@@ -2,18 +2,19 @@
 
 namespace Tests\Feature\Api;
 
-use App\Exceptions\AppraisalConflictException;
 use App\Jobs\ProcessAppraisalMarketData;
 use App\Models\Appraisal;
 use App\Models\Asset;
 use App\Models\User;
 use App\Models\Vehicle;
-use App\Services\AppraisalReviewService;
+use App\Services\AppraisalMarketDataService;
 use App\Support\Enums\AppraisalDecision;
 use App\Support\Enums\AppraisalPhotoAngle;
+use App\Support\Enums\AppraisalPhotoReviewStatus;
 use App\Support\Enums\AppraisalStatus;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Laravel\Passport\Passport;
@@ -190,17 +191,14 @@ class AppraisalApiTest extends TestCase
     {
         Passport::actingAs($this->customer);
         $appraisal = $this->submittedAppraisal();
-        $appraiser = User::factory()->create();
-        $appraiser->assignRole('staff');
-
-        $reviews = app(AppraisalReviewService::class);
-        $reviews->startReview($appraisal, $appraiser);
-        $reviews->requestPhotoCorrection(
-            $appraisal->refresh(),
-            $appraiser,
-            AppraisalPhotoAngle::RightSide,
-            'Foto terlalu buram. Ambil ulang dari jarak 2–3 meter.',
-        );
+        $appraisal->currentPhotos()
+            ->where('angle', AppraisalPhotoAngle::RightSide)
+            ->firstOrFail()
+            ->update([
+                'review_status' => AppraisalPhotoReviewStatus::Rejected,
+                'rejection_note' => 'Foto terlalu buram. Ambil ulang dari jarak 2–3 meter.',
+            ]);
+        $appraisal->update(['status' => AppraisalStatus::NeedsCustomerAction]);
 
         $this->getJson("/api/v1/appraisals/{$appraisal->id}")
             ->assertOk()
@@ -225,7 +223,7 @@ class AppraisalApiTest extends TestCase
 
         $this->postJson("/api/v1/appraisals/{$appraisal->id}/resubmit")
             ->assertOk()
-            ->assertJsonPath('data.status', AppraisalStatus::UnderAppraiserReview->value);
+            ->assertJsonPath('data.status', AppraisalStatus::CollectingMarketData->value);
 
         $this->assertDatabaseCount('appraisal_photos', 6);
         $this->assertDatabaseHas('appraisal_photos', [
@@ -234,9 +232,14 @@ class AppraisalApiTest extends TestCase
             'version' => 2,
             'is_current' => true,
         ]);
+        Queue::assertPushed(
+            ProcessAppraisalMarketData::class,
+            fn (ProcessAppraisalMarketData $job): bool => $job->appraisalId === $appraisal->id
+                && $job->force,
+        );
     }
 
-    public function test_result_is_hidden_until_published_then_decision_carries_forward_contract(): void
+    public function test_result_is_hidden_until_automatic_publication_then_decision_carries_forward_contract(): void
     {
         Passport::actingAs($this->customer);
         $appraisal = $this->submittedAppraisal();
@@ -245,37 +248,21 @@ class AppraisalApiTest extends TestCase
             ->assertOk()
             ->assertJsonMissingPath('data.result.market_price');
 
-        $appraiser = User::factory()->create();
-        $appraiser->assignRole('staff');
-        $reviews = app(AppraisalReviewService::class);
-        $reviews->startReview($appraisal, $appraiser);
-        $reviews->publishResult(
-            $appraisal->refresh(),
-            $appraiser,
-            [
-                'market_low' => 178000000,
-                'market_mid' => 185000000,
-                'market_high' => 192000000,
-                'trade_in_low' => 168000000,
-                'trade_in_high' => 176000000,
-                'data_as_of' => now(),
-                'valid_until' => now()->addDays(7),
-                'requires_physical_inspection' => true,
-                'disclaimer' => 'Hasil merupakan indikasi dan belum merupakan penawaran final.',
-                'adjustments' => [['label' => 'Kondisi kendaraan']],
-                'override_reason_code' => 'manual_assessment',
-                'override_notes' => 'Penilaian manual berdasarkan pembanding yang sudah diverifikasi appraiser.',
-            ],
-            $this->comparablePayloads(6),
-        );
+        Http::fake([
+            'https://www.olx.co.id/*' => Http::response(
+                $this->olxCards(8),
+                200,
+                ['Content-Type' => 'text/html'],
+            ),
+        ]);
+        app(AppraisalMarketDataService::class)->process($appraisal->refresh());
 
         $this->getJson("/api/v1/appraisals/{$appraisal->id}")
             ->assertOk()
             ->assertJsonPath('data.status', AppraisalStatus::ResultReady->value)
-            ->assertJsonPath('data.result.trade_in_estimate.low', 168000000)
-            ->assertJsonPath('data.result.market_price.high', 192000000)
+            ->assertJsonPath('data.result.publication_type', 'automatic_engine')
             ->assertJsonPath('data.result.confidence', 'medium')
-            ->assertJsonPath('data.result.comparable_count', 6);
+            ->assertJsonPath('data.result.comparable_count', 8);
 
         $this->postJson("/api/v1/appraisals/{$appraisal->id}/decision", [
             'decision' => AppraisalDecision::Accepted->value,
@@ -284,34 +271,30 @@ class AppraisalApiTest extends TestCase
             ->assertJsonPath('data.status', AppraisalStatus::AcceptedByCustomer->value)
             ->assertJsonPath('data.continuation.type', 'credit_simulation')
             ->assertJsonPath('data.continuation.vehicle_id', $appraisal->vehicle_id)
-            ->assertJsonPath('data.continuation.suggested_trade_in_low', 168000000);
+            ->assertJsonPath(
+                'data.continuation.suggested_trade_in_low',
+                $appraisal->refresh()->latestResult->trade_in_low,
+            );
     }
 
-    public function test_result_publication_requires_provenance_and_valid_price_order(): void
+    public function test_automatic_result_is_not_published_with_insufficient_comparables(): void
     {
         $appraisal = $this->submittedAppraisal();
-        $appraiser = User::factory()->create();
-        $appraiser->assignRole('staff');
-        $reviews = app(AppraisalReviewService::class);
-        $reviews->startReview($appraisal, $appraiser);
+        config(['appraisal.ai.enabled' => false]);
+        Http::fake([
+            'https://www.olx.co.id/*' => Http::response(
+                $this->olxCards(2),
+                200,
+                ['Content-Type' => 'text/html'],
+            ),
+        ]);
 
-        $this->expectException(AppraisalConflictException::class);
-        $reviews->publishResult(
-            $appraisal->refresh(),
-            $appraiser,
-            [
-                'market_low' => 200000000,
-                'market_mid' => 185000000,
-                'market_high' => 192000000,
-                'trade_in_low' => 168000000,
-                'trade_in_high' => 176000000,
-                'data_as_of' => now(),
-                'valid_until' => now()->addDays(7),
-                'requires_physical_inspection' => true,
-                'disclaimer' => 'Indikatif.',
-            ],
-            [],
-        );
+        app(AppraisalMarketDataService::class)->process($appraisal);
+
+        self::assertSame(AppraisalStatus::Failed, $appraisal->refresh()->status);
+        $this->assertDatabaseMissing('appraisal_results', [
+            'appraisal_id' => $appraisal->id,
+        ]);
     }
 
     private function createDraft(): Appraisal
@@ -394,25 +377,19 @@ class AppraisalApiTest extends TestCase
         ];
     }
 
-    /** @return list<array<string, mixed>> */
-    private function comparablePayloads(int $count): array
+    private function olxCards(int $count): string
     {
         return collect(range(1, $count))
-            ->map(fn (int $index): array => [
-                'source_code' => 'manual_appraiser',
-                'external_reference_hash' => hash('sha256', 'reference-'.$index),
-                'make' => 'Toyota',
-                'model' => 'Avanza',
-                'variant' => '1.5 G',
-                'year' => 2022,
-                'mileage' => 40000 + ($index * 1000),
-                'listing_price' => 178000000 + ($index * 2000000),
-                'city' => 'Surabaya',
-                'observed_at' => now()->subDays($index),
-                'similarity_score' => 0.9000,
-                'is_outlier' => false,
-                'metadata' => ['provenance' => 'manual_csv'],
-            ])
-            ->all();
+            ->map(fn (int $index): string => <<<HTML
+            <div data-aut-id="itemBox">
+              <a href="/item/avanza-{$index}">
+                <span data-aut-id="itemTitle">Toyota Avanza 1.5 G AT 2022</span>
+                <span data-aut-id="itemPrice">Rp 19{$index}.000.000</span>
+                <span data-aut-id="itemDetails">2022 - 4{$index}.000 km - Bensin</span>
+                <span data-aut-id="item-location">SurabayaHari ini</span>
+              </a>
+            </div>
+            HTML)
+            ->implode("\n");
     }
 }

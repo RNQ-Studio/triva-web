@@ -29,7 +29,7 @@ use Illuminate\Support\Carbon;
  * @property string $publication_type
  * @property string|null $override_reason_code
  * @property string|null $override_notes
- * @property int $published_by
+ * @property int|null $published_by
  * @property Carbon $published_at
  */
 class AppraisalResult extends Model

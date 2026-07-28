@@ -5,9 +5,7 @@ namespace Tests\Feature;
 use App\Jobs\ProcessAppraisalMarketData;
 use App\Models\Appraisal;
 use App\Models\MarketDataSource;
-use App\Models\User;
 use App\Services\AppraisalMarketDataService;
-use App\Services\AppraisalReviewService;
 use App\Support\Enums\AppraisalStatus;
 use App\Support\Enums\MarketDataSourceStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -22,6 +20,12 @@ class AppraisalMarketDataProcessingTest extends TestCase
     public function test_active_olx_provider_requires_auditable_permission(): void
     {
         $source = MarketDataSource::query()->where('code', 'olx_approved_html')->firstOrFail();
+        $source->update([
+            'status' => MarketDataSourceStatus::Draft,
+            'approval_reference' => null,
+            'approved_at' => null,
+            'approval_expires_at' => null,
+        ]);
 
         $this->expectException(ValidationException::class);
         $source->update(['status' => MarketDataSourceStatus::Active]);
@@ -57,8 +61,9 @@ class AppraisalMarketDataProcessingTest extends TestCase
         self::assertSame(8, $estimate->comparable_count);
         self::assertNotNull($estimate->market_mid);
         self::assertSame(['olx_approved_html'], $estimate->provider_codes);
-        self::assertSame(AppraisalStatus::AutoEstimated, $appraisal->refresh()->status);
+        self::assertSame(AppraisalStatus::ResultReady, $appraisal->refresh()->status);
         $this->assertDatabaseCount('appraisal_market_comparables', 8);
+        $this->assertDatabaseCount('appraisal_comparables', 8);
         $this->assertDatabaseHas('market_data_sources', [
             'id' => $source->getKey(),
             'last_error_code' => null,
@@ -68,49 +73,30 @@ class AppraisalMarketDataProcessingTest extends TestCase
             'https://www.olx.co.id/mobil-bekas_c198/q-toyota-avanza',
         ));
 
-        $published = app(AppraisalReviewService::class)->publishResult(
-            $appraisal->refresh(),
-            User::factory()->create(),
-            [
-                'market_estimate_id' => $estimate->id,
-                'market_low' => $estimate->market_low,
-                'market_mid' => $estimate->market_mid,
-                'market_high' => $estimate->market_high,
-                'trade_in_low' => $estimate->trade_in_low,
-                'trade_in_high' => $estimate->trade_in_high,
-                'data_as_of' => $estimate->data_as_of,
-                'valid_until' => now()->addDays(7),
-                'requires_physical_inspection' => true,
-                'disclaimer' => 'Hasil merupakan indikasi dan belum merupakan penawaran final.',
-                'adjustments' => $estimate->adjustments,
-            ],
-            $estimate->comparables
-                ->whereNull('exclusion_reason')
-                ->map(fn ($comparable): array => [
-                    'source_code' => $comparable->source_code,
-                    'external_reference_hash' => $comparable->external_reference_hash,
-                    'make' => $comparable->make,
-                    'model' => $comparable->model,
-                    'variant' => $comparable->variant,
-                    'year' => $comparable->year,
-                    'mileage' => $comparable->mileage,
-                    'listing_price' => $comparable->listing_price,
-                    'city' => $comparable->city,
-                    'observed_at' => $comparable->observed_at,
-                    'similarity_score' => $comparable->similarity_score,
-                    'is_outlier' => false,
-                    'metadata' => ['provenance' => 'market_estimate'],
-                ])
-                ->values()
-                ->all(),
-        );
-        self::assertSame('approved_engine', $published->publication_type);
+        $published = $appraisal->results()->firstOrFail();
+        self::assertSame('automatic_engine', $published->publication_type);
         self::assertNull($published->override_reason_code);
+        self::assertNull($published->published_by);
         self::assertSame(AppraisalStatus::ResultReady, $appraisal->refresh()->status);
+
+        app(AppraisalMarketDataService::class)->process($appraisal->refresh());
+        $this->assertDatabaseCount('appraisal_results', 1);
+        self::assertSame(
+            1,
+            $appraisal->statusHistories()
+                ->where('status', AppraisalStatus::ResultReady->value)
+                ->count(),
+        );
     }
 
-    public function test_job_falls_back_to_manual_review_when_no_approved_provider_is_active(): void
+    public function test_job_marks_automatic_processing_failed_when_no_provider_is_active(): void
     {
+        MarketDataSource::query()
+            ->whereIn('code', ['olx_approved_html', 'openai_market_research'])
+            ->get()
+            ->each(fn (MarketDataSource $source) => $source->update([
+                'status' => MarketDataSourceStatus::Draft,
+            ]));
         $appraisal = Appraisal::factory()->create([
             'status' => AppraisalStatus::CollectingMarketData,
             'submitted_at' => now(),
@@ -121,7 +107,7 @@ class AppraisalMarketDataProcessingTest extends TestCase
         );
 
         self::assertSame(
-            AppraisalStatus::InsufficientComparables,
+            AppraisalStatus::Failed,
             $appraisal->refresh()->status,
         );
         $this->assertDatabaseHas('appraisal_market_estimates', [
@@ -129,6 +115,11 @@ class AppraisalMarketDataProcessingTest extends TestCase
             'status' => 'failed',
             'failure_code' => 'no_eligible_provider',
             'comparable_count' => 0,
+        ]);
+        $this->assertDatabaseHas('appraisal_status_histories', [
+            'appraisal_id' => $appraisal->id,
+            'status' => AppraisalStatus::Failed->value,
+            'title' => 'Pemrosesan otomatis belum berhasil',
         ]);
     }
 

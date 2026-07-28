@@ -30,6 +30,7 @@ class AppraisalMarketDataService
         OlxApprovedHtmlProvider $olx,
         private readonly OpenAiMarketResearchProvider $aiFallback,
         private readonly AppraisalValuationEngine $engine,
+        private readonly AppraisalAutomaticResultPublisher $resultPublisher,
     ) {
         $this->providers = [$olx->code() => $olx];
     }
@@ -44,6 +45,10 @@ class AppraisalMarketDataService
             && $appraisal->submitted_at !== null
             && $existing->calculated_at->gte($appraisal->submitted_at)
         ) {
+            if ($existing->status === AppraisalMarketEstimateStatus::Ready) {
+                $this->resultPublisher->publish($appraisal, $existing);
+            }
+
             return $existing->load('comparables');
         }
 
@@ -141,7 +146,7 @@ class AppraisalMarketDataService
         }
         $valuation['calculation']['ai_fallback'] = $fallbackAudit;
 
-        return DB::transaction(function () use (
+        $estimate = DB::transaction(function () use (
             $appraisal,
             $valuation,
             $providerCodes,
@@ -176,22 +181,14 @@ class AppraisalMarketDataService
 
             $engineStatus = $valuation['status'] === AppraisalMarketEstimateStatus::Ready
                 ? AppraisalStatus::AutoEstimated
-                : AppraisalStatus::InsufficientComparables;
-            if ($locked->status === AppraisalStatus::UnderAppraiserReview) {
-                $this->history(
-                    $locked,
-                    AppraisalStatus::UnderAppraiserReview,
-                    'Data pembanding siap ditinjau',
-                    'Data pasar otomatis tersedia untuk validasi appraiser.',
-                );
-
-                return $estimate->load('comparables');
-            }
+                : AppraisalStatus::Failed;
             if (! in_array($locked->status, [
                 AppraisalStatus::Submitted,
                 AppraisalStatus::CollectingMarketData,
                 AppraisalStatus::AutoEstimated,
                 AppraisalStatus::InsufficientComparables,
+                AppraisalStatus::UnderAppraiserReview,
+                AppraisalStatus::Failed,
             ], true)) {
                 return $estimate->load('comparables');
             }
@@ -201,15 +198,21 @@ class AppraisalMarketDataService
                 $locked,
                 $engineStatus,
                 $engineStatus === AppraisalStatus::AutoEstimated
-                    ? 'Estimasi otomatis disiapkan'
-                    : 'Data pembanding perlu ditinjau',
+                    ? 'Estimasi otomatis selesai'
+                    : 'Pemrosesan otomatis belum berhasil',
                 $engineStatus === AppraisalStatus::AutoEstimated
-                    ? 'Data pasar berhasil diolah dan menunggu validasi appraiser.'
-                    : 'Data pembanding belum cukup. Appraiser akan melanjutkan penilaian manual.',
+                    ? 'Data OLX atau fallback OpenAI berhasil diolah oleh engine.'
+                    : 'OLX dan fallback OpenAI belum menghasilkan data pembanding yang memadai.',
             );
 
             return $estimate->load('comparables');
         });
+
+        if ($estimate->status === AppraisalMarketEstimateStatus::Ready) {
+            $this->resultPublisher->publish($appraisal->refresh(), $estimate);
+        }
+
+        return $estimate;
     }
 
     public function requestRefresh(Appraisal $appraisal, User $actor): void
@@ -225,21 +228,20 @@ class AppraisalMarketDataService
                     AppraisalStatus::AutoEstimated,
                     AppraisalStatus::InsufficientComparables,
                     AppraisalStatus::UnderAppraiserReview,
+                    AppraisalStatus::Failed,
                 ], true)
             ) {
                 throw new MarketDataProviderException(
                     'Data pasar hanya dapat diproses ulang sebelum hasil diterbitkan.',
                 );
             }
-            $nextStatus = $locked->status === AppraisalStatus::UnderAppraiserReview
-                ? AppraisalStatus::UnderAppraiserReview
-                : AppraisalStatus::CollectingMarketData;
+            $nextStatus = AppraisalStatus::CollectingMarketData;
             $locked->update(['status' => $nextStatus]);
             $this->history(
                 $locked,
                 $nextStatus,
                 'Data pasar diperbarui',
-                'Appraiser meminta sinkronisasi ulang data pembanding.',
+                'Pemrosesan otomatis OLX dan fallback OpenAI dijalankan ulang.',
                 $actor,
             );
 
@@ -250,7 +252,7 @@ class AppraisalMarketDataService
         });
     }
 
-    public function markForManualReview(
+    public function markProcessingFailed(
         Appraisal $appraisal,
         string $failureCode,
         string $failureMessage,
@@ -280,13 +282,18 @@ class AppraisalMarketDataService
                 AppraisalStatus::CollectingMarketData,
                 AppraisalStatus::AutoEstimated,
                 AppraisalStatus::InsufficientComparables,
+                AppraisalStatus::UnderAppraiserReview,
+                AppraisalStatus::Failed,
             ], true)) {
-                $locked->update(['status' => AppraisalStatus::InsufficientComparables]);
+                $locked->update([
+                    'status' => AppraisalStatus::Failed,
+                    'assigned_appraiser_id' => null,
+                ]);
                 $this->history(
                     $locked,
-                    AppraisalStatus::InsufficientComparables,
-                    'Penilaian dilanjutkan manual',
-                    'Data pasar belum tersedia secara otomatis. Appraiser akan meninjau permintaan.',
+                    AppraisalStatus::Failed,
+                    'Pemrosesan otomatis belum berhasil',
+                    'OLX dan fallback OpenAI belum dapat menyelesaikan appraisal. Data Anda tetap tersimpan.',
                 );
             }
 

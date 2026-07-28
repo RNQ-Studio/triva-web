@@ -26,9 +26,9 @@ enum AppraisalStatus: string
             self::Draft => 'Draft',
             self::Submitted => 'Permintaan diterima',
             self::CollectingMarketData => 'Mencari data pembanding',
-            self::AutoEstimated => 'Menunggu validasi appraiser',
-            self::InsufficientComparables => 'Sedang ditinjau manual',
-            self::UnderAppraiserReview => 'Sedang dinilai',
+            self::AutoEstimated => 'Estimasi otomatis selesai',
+            self::InsufficientComparables => 'Pemrosesan otomatis belum berhasil',
+            self::UnderAppraiserReview => 'Pemrosesan otomatis dilanjutkan',
             self::NeedsCustomerAction => 'Perlu tindakan Anda',
             self::ResultReady => 'Hasil tersedia',
             self::AcceptedByCustomer => 'Harga diterima',
@@ -37,7 +37,7 @@ enum AppraisalStatus: string
             self::Converted => 'Proses dilanjutkan',
             self::Expired => 'Hasil kedaluwarsa',
             self::Cancelled => 'Dibatalkan',
-            self::Failed => 'Sedang ditangani',
+            self::Failed => 'Pemrosesan belum berhasil',
         };
     }
 

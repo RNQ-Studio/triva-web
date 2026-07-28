@@ -36,8 +36,10 @@ class AppraisalPolicy
             && $appraisal->status === AppraisalStatus::ResultReady;
     }
 
-    public function review(User $user, Appraisal $appraisal): bool
-    {
+    public function manageAutomaticProcessing(
+        User $user,
+        Appraisal $appraisal,
+    ): bool {
         return $user->can('appraisals.update');
     }
 }

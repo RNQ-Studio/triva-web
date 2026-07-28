@@ -76,7 +76,7 @@ class AppraisalInfolist
                         ->dateTime(),
                 ]),
             Section::make('Rekomendasi engine')
-                ->description('Hanya untuk back-office; customer baru melihat hasil setelah diterbitkan appraiser.')
+                ->description('Estimate ready diterbitkan otomatis; back-office hanya menampilkan evidence dan audit.')
                 ->columns(3)
                 ->visible(fn (Appraisal $record): bool => $record->latestMarketEstimate !== null)
                 ->schema([

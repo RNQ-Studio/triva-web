@@ -34,7 +34,10 @@ class AppraisalManagementTest extends TestCase
         $this->actingAs($staff)
             ->get(AppraisalResource::getUrl('view', ['record' => $appraisal]))
             ->assertOk()
-            ->assertSee($appraisal->reference_no);
+            ->assertSee($appraisal->reference_no)
+            ->assertDontSee('Terbitkan hasil')
+            ->assertDontSee('Mulai review')
+            ->assertDontSee('Minta foto ulang');
     }
 
     public function test_customer_cannot_access_appraisal_back_office(): void

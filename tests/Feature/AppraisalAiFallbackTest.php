@@ -54,7 +54,12 @@ class AppraisalAiFallbackTest extends TestCase
             ['olx_approved_html', 'openai_market_research'],
             $estimate->provider_codes,
         );
-        self::assertSame(AppraisalStatus::AutoEstimated, $appraisal->refresh()->status);
+        self::assertSame(AppraisalStatus::ResultReady, $appraisal->refresh()->status);
+        $this->assertDatabaseHas('appraisal_results', [
+            'appraisal_id' => $appraisal->id,
+            'publication_type' => 'automatic_engine',
+            'published_by' => null,
+        ]);
         $this->assertDatabaseCount('appraisal_ai_agent_runs', 2);
         $this->assertDatabaseHas('appraisal_ai_agent_runs', [
             'appraisal_id' => $appraisal->id,
@@ -87,6 +92,7 @@ class AppraisalAiFallbackTest extends TestCase
         foreach ($openAiRequests as [$request]) {
             self::assertSame('gpt-5.6-sol', $request['model']);
             self::assertFalse($request['store']);
+            self::assertSame('required', $request['tool_choice']);
             self::assertSame(
                 ['www.olx.co.id', 'olx.co.id'],
                 $request['tools'][0]['filters']['allowed_domains'],
@@ -114,6 +120,7 @@ class AppraisalAiFallbackTest extends TestCase
 
         self::assertSame(AppraisalMarketEstimateStatus::Ready, $estimate->status);
         self::assertSame(['olx_approved_html'], $estimate->provider_codes);
+        self::assertSame(AppraisalStatus::ResultReady, $appraisal->refresh()->status);
         $this->assertDatabaseCount('appraisal_ai_agent_runs', 0);
         Http::assertNotSent(fn ($request): bool => str_starts_with(
             $request->url(),
@@ -146,7 +153,7 @@ class AppraisalAiFallbackTest extends TestCase
         self::assertSame(AppraisalMarketEstimateStatus::Insufficient, $estimate->status);
         self::assertSame(0, $estimate->comparable_count);
         self::assertSame(
-            AppraisalStatus::InsufficientComparables,
+            AppraisalStatus::Failed,
             $appraisal->refresh()->status,
         );
         $this->assertDatabaseHas('appraisal_ai_agent_runs', [
@@ -183,6 +190,7 @@ class AppraisalAiFallbackTest extends TestCase
 
         self::assertSame(AppraisalMarketEstimateStatus::Insufficient, $estimate->status);
         self::assertSame(0, $estimate->comparable_count);
+        self::assertSame(AppraisalStatus::Failed, $appraisal->refresh()->status);
         $this->assertDatabaseHas('appraisal_ai_agent_runs', [
             'appraisal_id' => $appraisal->id,
             'phase' => 'research',
@@ -197,7 +205,7 @@ class AppraisalAiFallbackTest extends TestCase
         $this->assertDatabaseCount('appraisal_market_comparables', 0);
     }
 
-    public function test_missing_openai_configuration_keeps_the_appraisal_in_manual_review(): void
+    public function test_missing_openai_configuration_marks_automatic_processing_failed(): void
     {
         $this->activateSource('olx_approved_html');
         $this->activateSource('openai_market_research');
@@ -215,7 +223,7 @@ class AppraisalAiFallbackTest extends TestCase
 
         self::assertSame(AppraisalMarketEstimateStatus::Insufficient, $estimate->status);
         self::assertSame(
-            AppraisalStatus::InsufficientComparables,
+            AppraisalStatus::Failed,
             $appraisal->refresh()->status,
         );
         $this->assertDatabaseHas('market_data_sources', [

@@ -31,7 +31,7 @@ return [
     ],
     'ai' => [
         'enabled' => filter_var(
-            env('APPRAISAL_AI_FALLBACK_ENABLED', false),
+            env('APPRAISAL_AI_FALLBACK_ENABLED', true),
             FILTER_VALIDATE_BOOL,
         ),
         'research_model' => env('APPRAISAL_AI_RESEARCH_MODEL', 'gpt-5.6-sol'),

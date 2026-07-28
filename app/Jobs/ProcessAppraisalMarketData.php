@@ -42,10 +42,10 @@ class ProcessAppraisalMarketData implements ShouldQueue
         try {
             $marketData->process($appraisal, $this->force);
         } catch (NoEligibleMarketDataSourceException) {
-            $marketData->markForManualReview(
+            $marketData->markProcessingFailed(
                 $appraisal,
                 'no_eligible_provider',
-                'Tidak ada provider berizin dan aktif.',
+                'Provider OLX dan fallback OpenAI belum aktif.',
             );
         }
     }
@@ -57,10 +57,10 @@ class ProcessAppraisalMarketData implements ShouldQueue
             return;
         }
 
-        app(AppraisalMarketDataService::class)->markForManualReview(
+        app(AppraisalMarketDataService::class)->markProcessingFailed(
             $appraisal,
             'provider_unavailable',
-            'Provider market data gagal setelah seluruh percobaan.',
+            'OLX dan fallback OpenAI gagal setelah seluruh percobaan.',
         );
     }
 }
