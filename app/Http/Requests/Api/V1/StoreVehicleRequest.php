@@ -132,17 +132,6 @@ class StoreVehicleRequest extends FormRequest
                     );
                 }
 
-                $year = $this->integer('year');
-                if (
-                    $year < $variant->year_from
-                    || ($variant->year_to !== null && $year > $variant->year_to)
-                ) {
-                    $validator->errors()->add(
-                        'variant_id',
-                        'Varian tidak tersedia untuk tahun kendaraan yang dipilih.',
-                    );
-                }
-
                 if (
                     $variant->transmission !== null
                     && $variant->transmission !== $this->string('transmission')->toString()

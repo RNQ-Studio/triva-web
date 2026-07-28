@@ -18,8 +18,6 @@ class VehicleVariantSeeder extends Seeder
          *     source_url: string,
          *     variants: list<array{
          *         name: string,
-         *         year_from: int,
-         *         year_to?: int,
          *         transmission: string,
          *         fuel_type: string,
          *         aliases?: list<string>,
@@ -56,11 +54,11 @@ class VehicleVariantSeeder extends Seeder
                         [
                             'vehicle_model_id' => $model->getKey(),
                             'slug' => Str::slug($variant['name']),
-                            'year_from' => $variant['year_from'],
                         ],
                         [
                             'name' => $variant['name'],
-                            'year_to' => $variant['year_to'] ?? null,
+                            'year_from' => 1950,
+                            'year_to' => null,
                             'transmission' => $variant['transmission'],
                             'fuel_type' => $variant['fuel_type'],
                             'aliases' => $variant['aliases'] ?? null,

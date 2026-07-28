@@ -12,7 +12,7 @@ use Illuminate\Http\JsonResponse;
 class VehicleModelController extends Controller
 {
     public function variants(
-        ListVehicleVariantsRequest $request,
+        ListVehicleVariantsRequest $_request,
         VehicleModel $vehicleModel,
     ): JsonResponse {
         abort_unless(
@@ -22,7 +22,6 @@ class VehicleModelController extends Controller
 
         $variants = $vehicleModel->vehicleVariants()
             ->active()
-            ->availableInYear($request->integer('year'))
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();

@@ -35,7 +35,7 @@ class VehicleMakeApiTest extends TestCase
     {
         $this->getJson('/api/v1/vehicle-makes')->assertUnauthorized();
         $this->getJson('/api/v1/vehicle-makes/1/models')->assertUnauthorized();
-        $this->getJson('/api/v1/vehicle-models/1/variants?year=2026')
+        $this->getJson('/api/v1/vehicle-models/1/variants')
             ->assertUnauthorized();
     }
 
@@ -77,7 +77,7 @@ class VehicleMakeApiTest extends TestCase
             ->assertJsonMissing(['name' => 'Calya']);
     }
 
-    public function test_customer_can_list_active_variants_for_model_and_year(): void
+    public function test_customer_can_list_active_variants_for_selected_model(): void
     {
         Passport::actingAs(User::factory()->create());
         $avanza = VehicleModel::query()
@@ -88,33 +88,38 @@ class VehicleMakeApiTest extends TestCase
             ->where('name', 'Avanza')
             ->firstOrFail();
 
-        $this->getJson("/api/v1/vehicle-models/{$avanza->id}/variants?year=2022")
+        $response = $this->getJson(
+            "/api/v1/vehicle-models/{$avanza->id}/variants",
+        )
             ->assertOk()
             ->assertJsonFragment([
                 'model_id' => $avanza->id,
                 'name' => '1.5 G CVT TSS',
+                'year_from' => 1950,
+                'year_to' => null,
                 'transmission' => 'automatic',
                 'fuel_type' => 'gasoline',
             ])
-            ->assertJsonMissing(['name' => '1.3 E CVT']);
+            ->assertJsonFragment(['name' => '1.3 E CVT']);
+
+        $this->getJson(
+            "/api/v1/vehicle-models/{$avanza->id}/variants?year=2022",
+        )
+            ->assertOk()
+            ->assertJsonCount(count($response->json('data')), 'data');
 
         $inactive = VehicleVariant::query()
             ->where('vehicle_model_id', $avanza->id)
             ->where('name', '1.5 G CVT')
-            ->where('year_from', 2021)
             ->firstOrFail();
         $inactive->update(['is_active' => false]);
 
-        $this->getJson("/api/v1/vehicle-models/{$avanza->id}/variants?year=2022")
+        $this->getJson("/api/v1/vehicle-models/{$avanza->id}/variants")
             ->assertOk()
             ->assertJsonMissing(['id' => $inactive->id]);
 
-        $this->getJson("/api/v1/vehicle-models/{$avanza->id}/variants")
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['year']);
-
         $avanza->update(['is_active' => false]);
-        $this->getJson("/api/v1/vehicle-models/{$avanza->id}/variants?year=2022")
+        $this->getJson("/api/v1/vehicle-models/{$avanza->id}/variants")
             ->assertNotFound();
     }
 
@@ -157,11 +162,7 @@ class VehicleMakeApiTest extends TestCase
                         ->where('vehicle_make_id', $make->id)
                         ->where('is_active', true),
                 )
-                ->where('is_active', true)
-                ->where('year_from', '<=', 2026)
-                ->where(fn ($query) => $query
-                    ->whereNull('year_to')
-                    ->orWhere('year_to', '>=', 2026));
+                ->where('is_active', true);
 
             $this->assertSame(
                 $expected['model_count'],
@@ -185,7 +186,7 @@ class VehicleMakeApiTest extends TestCase
                 ->firstOrFail();
 
             $this->getJson(
-                "/api/v1/vehicle-models/{$sampleModel->id}/variants?year=2026",
+                "/api/v1/vehicle-models/{$sampleModel->id}/variants",
             )
                 ->assertOk()
                 ->assertJsonFragment([
@@ -199,9 +200,17 @@ class VehicleMakeApiTest extends TestCase
         $this->seed(VehicleVariantSeeder::class);
 
         $this->assertSame(
-            200,
+            196,
             VehicleVariant::query()->count(),
             'VehicleVariantSeeder must remain idempotent.',
+        );
+        $this->assertSame(
+            0,
+            VehicleVariant::query()
+                ->where('year_from', '!=', 1950)
+                ->orWhereNotNull('year_to')
+                ->count(),
+            'Legacy year fields must not constrain model-scoped variants.',
         );
     }
 
@@ -217,14 +226,13 @@ class VehicleMakeApiTest extends TestCase
         $variant = VehicleVariant::query()
             ->where('vehicle_model_id', $avanza->id)
             ->where('name', '1.5 G CVT')
-            ->where('year_from', 2026)
             ->firstOrFail();
 
         $payload = [
             'make_id' => $toyota->id,
             'model_id' => $avanza->id,
             'variant_id' => $variant->id,
-            'year' => 2026,
+            'year' => 2000,
             'transmission' => 'automatic',
             'fuel_type' => 'gasoline',
             'mileage' => 1200,
@@ -249,7 +257,7 @@ class VehicleMakeApiTest extends TestCase
             ->assertJsonPath('data.variant', 'Varian Karoseri Khusus');
     }
 
-    public function test_vehicle_rejects_variant_outside_selected_contract(): void
+    public function test_vehicle_rejects_variant_outside_selected_model_or_metadata(): void
     {
         Passport::actingAs(User::factory()->create());
         $toyota = VehicleMake::query()->where('slug', 'toyota')->firstOrFail();
@@ -264,7 +272,6 @@ class VehicleMakeApiTest extends TestCase
         $variant = VehicleVariant::query()
             ->where('vehicle_model_id', $avanza->id)
             ->where('name', '1.5 G CVT')
-            ->where('year_from', 2026)
             ->firstOrFail();
         $payload = [
             'make_id' => $toyota->id,
@@ -282,13 +289,6 @@ class VehicleMakeApiTest extends TestCase
         $this->postJson('/api/v1/vehicles', [
             ...$payload,
             'model_id' => $calya->id,
-        ])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['variant_id']);
-
-        $this->postJson('/api/v1/vehicles', [
-            ...$payload,
-            'year' => 2022,
         ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['variant_id']);

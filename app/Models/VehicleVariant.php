@@ -59,18 +59,6 @@ class VehicleVariant extends Model
         $query->where('is_active', true);
     }
 
-    /** @param Builder<VehicleVariant> $query */
-    public function scopeAvailableInYear(Builder $query, int $year): void
-    {
-        $query
-            ->where('year_from', '<=', $year)
-            ->where(function (Builder $query) use ($year): void {
-                $query
-                    ->whereNull('year_to')
-                    ->orWhere('year_to', '>=', $year);
-            });
-    }
-
     /** @return BelongsTo<VehicleModel, $this> */
     public function vehicleModel(): BelongsTo
     {

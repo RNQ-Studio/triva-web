@@ -13,13 +13,6 @@ class ListVehicleVariantsRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
-            'year' => [
-                'required',
-                'integer',
-                'min:1950',
-                'max:'.(now()->year + 1),
-            ],
-        ];
+        return [];
     }
 }
