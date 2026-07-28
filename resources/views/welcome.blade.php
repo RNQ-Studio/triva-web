@@ -1,485 +1,1304 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="id">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
 
-    <title>{{ config('app.name', 'Laravel Starter') }} — API Backend & Back-office</title>
-    <meta name="description" content="Starter project berbasis Laravel + PostgreSQL sebagai fondasi API backend untuk Flutter dan back-office web UI dengan Filament. Siap dikembangkan, tanpa over-engineering.">
+    <title>TRIVA | Semua Kebutuhan Mobil dalam Satu Aplikasi</title>
+    <meta
+        name="description"
+        content="TRIVA membantu Anda melakukan appraisal kendaraan, booking servis, simulasi kredit, dan estimasi perbaikan dari satu aplikasi."
+    >
+    <meta name="theme-color" content="#062a66">
+    <link rel="canonical" href="{{ url('/') }}">
 
-    {{-- Favicons and Apple Touch Icon --}}
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="id_ID">
+    <meta property="og:title" content="TRIVA | Semua Kebutuhan Mobil dalam Satu Aplikasi">
+    <meta
+        property="og:description"
+        content="Kelola kebutuhan kendaraan Anda dengan alur yang jelas, progres yang dapat dipantau, dan informasi yang transparan."
+    >
+    <meta property="og:url" content="{{ url('/') }}">
+    <meta property="og:image" content="{{ asset('landing/triva-service-bay.jpg') }}">
+    <meta property="og:image:alt" content="Kendaraan keluarga berwarna navy di area servis modern">
+
+    <link rel="preload" as="image" href="{{ asset('landing/triva-service-bay.webp') }}" type="image/webp">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
-    <link rel="apple-touch-icon-precomposed" href="{{ asset('apple-touch-icon-precomposed.png') }}">
+    <link rel="apple-touch-icon-precomposed" sizes="180x180" href="{{ asset('apple-touch-icon-precomposed.png') }}">
     <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
     <link rel="manifest" href="{{ asset('site.webmanifest') }}">
-    <meta name="theme-color" content="#2563eb">
 
-    {{-- Project fonts (Instrument Sans via Bunny) --}}
     @fonts
 
-    {{-- Styles / Scripts --}}
     @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @vite('resources/css/app.css')
     @endif
 
-    {{-- x-cloak must be in <head> so Alpine elements are hidden before Alpine loads --}}
     <style>
-        [x-cloak] { display: none !important; }
-
-        /* Smooth scroll */
-        html { scroll-behavior: smooth; }
-
-        /* Fade-in animation */
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(24px); }
-            to { opacity: 1; transform: translateY(0); }
+        :root {
+            --surface: #f5f7fa;
+            --surface-elevated: #ffffff;
+            --surface-muted: #eaf0f5;
+            --surface-deep: #062a66;
+            --text: #071d43;
+            --text-soft: #52627a;
+            --text-on-deep: #f7fbff;
+            --line: #d8e0e9;
+            --accent: #008078;
+            --accent-strong: #006c65;
+            --accent-soft: #d9f1ef;
+            --shadow: 0 24px 70px rgba(6, 42, 102, 0.14);
+            --radius-card: 18px;
+            --radius-control: 12px;
+            --content: 1240px;
         }
-        .animate-fade-in-up {
-            animation: fadeInUp 0.7s ease-out both;
-        }
-        .delay-100 { animation-delay: 0.1s; }
-        .delay-200 { animation-delay: 0.2s; }
-        .delay-300 { animation-delay: 0.3s; }
-        .delay-400 { animation-delay: 0.4s; }
 
-        /* Feature card hover lift */
-        .feature-card {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --surface: #071323;
+                --surface-elevated: #0d1d31;
+                --surface-muted: #13263c;
+                --surface-deep: #0a326f;
+                --text: #eff6ff;
+                --text-soft: #aebdd0;
+                --text-on-deep: #f7fbff;
+                --line: #263a52;
+                --accent: #25b8ad;
+                --accent-strong: #4ccbc2;
+                --accent-soft: #123e43;
+                --shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+            }
         }
-        .feature-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 32px -8px rgba(37, 99, 235, 0.12), 0 4px 12px -4px rgba(0, 0, 0, 0.06);
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            background: var(--surface);
+            color: var(--text);
+            font-family: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body,
+        a,
+        button,
+        summary {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        img {
+            display: block;
+            max-width: 100%;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        a:focus-visible,
+        summary:focus-visible {
+            outline: 3px solid var(--accent);
+            outline-offset: 4px;
+        }
+
+        .container {
+            width: min(calc(100% - 40px), var(--content));
+            margin-inline: auto;
+        }
+
+        .site-nav {
+            position: sticky;
+            top: 0;
+            z-index: 30;
+            border-bottom: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+            background: color-mix(in srgb, var(--surface) 88%, transparent);
+            -webkit-backdrop-filter: blur(18px) saturate(150%);
+            backdrop-filter: blur(18px) saturate(150%);
+        }
+
+        .nav-inner {
+            min-height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 28px;
+        }
+
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            flex: 0 0 auto;
+            padding: 6px 10px;
+            border-radius: var(--radius-control);
+            background: #f4f7fa;
+            transition: transform 180ms ease;
+        }
+
+        .brand:hover {
+            transform: translateY(-1px);
+        }
+
+        .brand img {
+            width: 126px;
+            height: 38px;
+            object-fit: contain;
+        }
+
+        .desktop-nav {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 28px;
+            white-space: nowrap;
+        }
+
+        .desktop-nav > a:not(.button) {
+            color: var(--text-soft);
+            font-size: 0.94rem;
+            font-weight: 650;
+            transition: color 180ms ease;
+        }
+
+        .desktop-nav > a:not(.button):hover {
+            color: var(--text);
+        }
+
+        .button {
+            display: inline-flex;
+            min-height: 46px;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid transparent;
+            border-radius: var(--radius-control);
+            padding: 0 20px;
+            font-size: 0.95rem;
+            font-weight: 750;
+            line-height: 1;
+            white-space: nowrap;
+            transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+        }
+
+        .button:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        .button-primary {
+            background: var(--accent);
+            color: #ffffff;
+        }
+
+        .button-primary:hover {
+            background: var(--accent-strong);
+        }
+
+        .button-secondary {
+            border-color: var(--line);
+            background: var(--surface-elevated);
+            color: var(--text);
+        }
+
+        .button-secondary:hover {
+            border-color: var(--accent);
+        }
+
+        .mobile-menu {
+            display: none;
+            position: relative;
+        }
+
+        .mobile-menu summary {
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-control);
+            padding: 0 15px;
+            color: var(--text);
+            font-weight: 700;
+            cursor: pointer;
+            list-style: none;
+        }
+
+        .mobile-menu summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .mobile-menu-panel {
+            position: absolute;
+            top: calc(100% + 10px);
+            right: 0;
+            width: min(290px, calc(100vw - 40px));
+            display: grid;
+            gap: 4px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-card);
+            padding: 10px;
+            background: var(--surface-elevated);
+            box-shadow: var(--shadow);
+        }
+
+        .mobile-menu-panel a {
+            display: block;
+            border-radius: 10px;
+            padding: 12px;
+            color: var(--text-soft);
+            font-weight: 650;
+        }
+
+        .mobile-menu-panel a:hover {
+            background: var(--surface-muted);
+            color: var(--text);
+        }
+
+        .mobile-menu-panel .button {
+            margin-top: 4px;
+            color: #ffffff;
+        }
+
+        .hero {
+            min-height: calc(100dvh - 72px);
+            display: flex;
+            align-items: center;
+            overflow: clip;
+            padding: clamp(44px, 7vh, 76px) 0 clamp(74px, 10vh, 110px);
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 0.9fr) minmax(520px, 1.1fr);
+            align-items: center;
+            gap: clamp(48px, 7vw, 96px);
+        }
+
+        .hero-copy {
+            position: relative;
+            z-index: 2;
+        }
+
+        .eyebrow {
+            margin: 0 0 20px;
+            color: var(--accent);
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+        }
+
+        .hero h1 {
+            max-width: 720px;
+            margin: 0;
+            font-size: clamp(3.15rem, 5.6vw, 5.35rem);
+            font-weight: 820;
+            letter-spacing: -0.065em;
+            line-height: 0.98;
+        }
+
+        .hero h1 span {
+            color: var(--accent);
+        }
+
+        .hero-lede {
+            max-width: 610px;
+            margin: 26px 0 0;
+            color: var(--text-soft);
+            font-size: clamp(1.04rem, 1.4vw, 1.22rem);
+            line-height: 1.65;
+        }
+
+        .hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 34px;
+        }
+
+        .hero-visual {
+            position: relative;
+            height: min(62vh, 560px);
+            min-height: 430px;
+            border-radius: var(--radius-card);
+            isolation: isolate;
+        }
+
+        .hero-photo {
+            width: 100%;
+            height: 100%;
+            border-radius: inherit;
+            object-fit: cover;
+            object-position: center;
+            box-shadow: var(--shadow);
+        }
+
+        .hero-visual::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            border: 1px solid rgba(255, 255, 255, 0.34);
+            border-radius: inherit;
+            background: linear-gradient(90deg, rgba(6, 42, 102, 0.42), transparent 46%);
+            pointer-events: none;
+        }
+
+        .hero-phone {
+            position: absolute;
+            bottom: -54px;
+            left: -44px;
+            z-index: 2;
+            width: clamp(190px, 20vw, 244px);
+            border-radius: var(--radius-card);
+            box-shadow: 0 24px 64px rgba(3, 24, 58, 0.28);
+            transform: rotate(-2deg);
+        }
+
+        .proof-strip {
+            border-block: 1px solid var(--line);
+            background: var(--surface-elevated);
+        }
+
+        .proof-grid {
+            display: grid;
+            grid-template-columns: 1.2fr repeat(3, 1fr);
+            align-items: stretch;
+        }
+
+        .proof-item {
+            display: flex;
+            min-height: 112px;
+            align-items: center;
+            padding: 24px 28px;
+            border-left: 1px solid var(--line);
+        }
+
+        .proof-item:first-child {
+            border-left: 0;
+            padding-left: 0;
+        }
+
+        .proof-item:last-child {
+            padding-right: 0;
+        }
+
+        .proof-item p {
+            margin: 0;
+            color: var(--text-soft);
+            font-size: 0.98rem;
+        }
+
+        .proof-item strong {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--text);
+            font-size: 1.05rem;
+        }
+
+        .section {
+            padding: clamp(84px, 10vw, 140px) 0;
+        }
+
+        .section-heading {
+            max-width: 760px;
+            margin-bottom: clamp(42px, 6vw, 72px);
+        }
+
+        .section-heading h2 {
+            margin: 0;
+            font-size: clamp(2.3rem, 4.2vw, 4rem);
+            font-weight: 800;
+            letter-spacing: -0.052em;
+            line-height: 1.02;
+        }
+
+        .section-heading p {
+            max-width: 640px;
+            margin: 20px 0 0;
+            color: var(--text-soft);
+            font-size: 1.08rem;
+            line-height: 1.65;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr 0.85fr;
+            grid-template-rows: repeat(2, minmax(230px, auto));
+            gap: 18px;
+        }
+
+        .service {
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            min-height: 230px;
+            flex-direction: column;
+            justify-content: flex-end;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-card);
+            padding: clamp(24px, 3vw, 36px);
+            background: var(--surface-elevated);
+        }
+
+        .service-main {
+            grid-row: 1 / span 2;
+            border-color: transparent;
+            background:
+                linear-gradient(180deg, transparent 25%, rgba(3, 28, 67, 0.9) 100%),
+                url("{{ asset('landing/triva-service-bay.webp') }}") center / cover;
+            color: var(--text-on-deep);
+        }
+
+        .service-teal {
+            border-color: transparent;
+            background: linear-gradient(145deg, #00776f, #075169);
+            color: #f7fbff;
+        }
+
+        .service-navy {
+            border-color: transparent;
+            background: linear-gradient(145deg, #062a66, #103d7b);
+            color: #f7fbff;
+        }
+
+        .service p {
+            max-width: 34ch;
+            margin: 0 0 12px;
+            color: var(--text-soft);
+            font-size: 0.94rem;
+        }
+
+        .service-main p,
+        .service-teal p,
+        .service-navy p {
+            color: rgba(247, 251, 255, 0.78);
+        }
+
+        .service h3 {
+            max-width: 13ch;
+            margin: 0;
+            font-size: clamp(1.45rem, 2.3vw, 2.25rem);
+            letter-spacing: -0.035em;
+            line-height: 1.08;
+        }
+
+        .service-main h3 {
+            font-size: clamp(2.3rem, 4vw, 4rem);
+        }
+
+        .product-section {
+            overflow: clip;
+            background: var(--surface-elevated);
+        }
+
+        .screen-grid {
+            display: grid;
+            grid-template-columns: 1.08fr 0.92fr 0.92fr;
+            align-items: start;
+            gap: 22px;
+        }
+
+        .screen-card {
+            margin: 0;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-card);
+            padding: 20px 20px 0;
+            background: var(--surface-muted);
+            overflow: hidden;
+        }
+
+        .screen-card:nth-child(2) {
+            margin-top: 88px;
+        }
+
+        .screen-card:nth-child(3) {
+            margin-top: 176px;
+        }
+
+        .screen-card img {
+            width: 100%;
+            max-height: 720px;
+            object-fit: contain;
+            object-position: top center;
+        }
+
+        .screen-card figcaption {
+            padding: 18px 4px 20px;
+            border-top: 1px solid var(--line);
+        }
+
+        .screen-card strong {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--text);
+            font-size: 1.02rem;
+        }
+
+        .screen-card span {
+            color: var(--text-soft);
+            font-size: 0.9rem;
+        }
+
+        .journey {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            border-top: 1px solid var(--line);
+        }
+
+        .journey-item {
+            min-height: 250px;
+            padding: 34px clamp(24px, 4vw, 54px) 28px;
+            border-left: 1px solid var(--line);
+        }
+
+        .journey-item:first-child {
+            padding-left: 0;
+            border-left: 0;
+        }
+
+        .journey-item:last-child {
+            padding-right: 0;
+        }
+
+        .journey-kicker {
+            display: block;
+            margin-bottom: 58px;
+            color: var(--accent);
+            font-size: 0.9rem;
+            font-weight: 750;
+        }
+
+        .journey h3 {
+            margin: 0 0 12px;
+            font-size: clamp(1.5rem, 2.2vw, 2rem);
+            letter-spacing: -0.032em;
+        }
+
+        .journey p {
+            max-width: 31ch;
+            margin: 0;
+            color: var(--text-soft);
+        }
+
+        .trust-section {
+            padding: clamp(80px, 9vw, 120px) 0;
+            background: var(--surface-muted);
+        }
+
+        .trust-grid {
+            display: grid;
+            grid-template-columns: 0.82fr 1.18fr;
+            gap: clamp(50px, 8vw, 110px);
+            align-items: start;
+        }
+
+        .trust-grid h2 {
+            margin: 0;
+            font-size: clamp(2.35rem, 4vw, 3.75rem);
+            letter-spacing: -0.05em;
+            line-height: 1.03;
+        }
+
+        .trust-list {
+            border-top: 1px solid var(--line);
+        }
+
+        .trust-item {
+            display: grid;
+            grid-template-columns: minmax(170px, 0.7fr) 1.3fr;
+            gap: 28px;
+            padding: 26px 0;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .trust-item strong {
+            font-size: 1.04rem;
+        }
+
+        .trust-item p {
+            margin: 0;
+            color: var(--text-soft);
+        }
+
+        .closing {
+            padding: clamp(82px, 10vw, 132px) 0;
+        }
+
+        .closing-panel {
+            position: relative;
+            overflow: hidden;
+            border-radius: var(--radius-card);
+            padding: clamp(42px, 8vw, 92px);
+            background:
+                radial-gradient(circle at 84% 18%, rgba(37, 184, 173, 0.28), transparent 34%),
+                linear-gradient(145deg, #052455, #07366f);
+            color: var(--text-on-deep);
+        }
+
+        .closing-panel::after {
+            content: "";
+            position: absolute;
+            right: -86px;
+            bottom: -136px;
+            width: 340px;
+            height: 340px;
+            border: 52px solid rgba(37, 184, 173, 0.18);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .closing-panel h2 {
+            position: relative;
+            z-index: 1;
+            max-width: 760px;
+            margin: 0;
+            font-size: clamp(2.55rem, 5vw, 4.85rem);
+            letter-spacing: -0.058em;
+            line-height: 1;
+        }
+
+        .closing-panel p {
+            position: relative;
+            z-index: 1;
+            max-width: 560px;
+            margin: 22px 0 32px;
+            color: rgba(247, 251, 255, 0.76);
+            font-size: 1.08rem;
+        }
+
+        .closing-panel .button {
+            position: relative;
+            z-index: 1;
+            background: #ffffff;
+            color: #063369;
+        }
+
+        .closing-panel .button:hover {
+            background: #e8fffd;
+        }
+
+        .site-footer {
+            border-top: 1px solid var(--line);
+            padding: 42px 0;
+        }
+
+        .footer-grid {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 36px;
+        }
+
+        .footer-brand {
+            display: inline-flex;
+            padding: 6px 10px;
+            border-radius: var(--radius-control);
+            background: #f4f7fa;
+        }
+
+        .footer-brand img {
+            width: 116px;
+            height: 36px;
+            object-fit: contain;
+        }
+
+        .footer-copy {
+            max-width: 480px;
+            margin: 16px 0 0;
+            color: var(--text-soft);
+            font-size: 0.92rem;
+        }
+
+        .footer-links {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 12px 24px;
+            color: var(--text-soft);
+            font-size: 0.92rem;
+            font-weight: 650;
+        }
+
+        .footer-links a:hover {
+            color: var(--text);
+        }
+
+        .reveal {
+            opacity: 1;
+            transform: none;
+        }
+
+        @keyframes hero-enter {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes reveal-enter {
+            from {
+                opacity: 0;
+                transform: translateY(28px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (prefers-reduced-motion: no-preference) {
+            .hero-copy > * {
+                animation: hero-enter 680ms cubic-bezier(0.16, 1, 0.3, 1) both;
+            }
+
+            .hero-copy > :nth-child(2) {
+                animation-delay: 80ms;
+            }
+
+            .hero-copy > :nth-child(3) {
+                animation-delay: 160ms;
+            }
+
+            .hero-copy > :nth-child(4) {
+                animation-delay: 240ms;
+            }
+
+            .hero-visual {
+                animation: hero-enter 820ms 140ms cubic-bezier(0.16, 1, 0.3, 1) both;
+            }
+
+            @supports (animation-timeline: view()) {
+                .reveal {
+                    animation: reveal-enter linear both;
+                    animation-timeline: view();
+                    animation-range: entry 12% cover 32%;
+                }
+            }
+        }
+
+        @media (max-width: 1060px) {
+            .hero-grid {
+                grid-template-columns: minmax(0, 1fr) minmax(430px, 0.95fr);
+                gap: 46px;
+            }
+
+            .hero h1 {
+                font-size: clamp(3.2rem, 6vw, 4.3rem);
+            }
+
+            .hero-phone {
+                left: -26px;
+            }
+
+            .desktop-nav {
+                gap: 18px;
+            }
+
+            .services-grid {
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: minmax(340px, auto) repeat(2, minmax(210px, auto));
+            }
+
+            .service-main {
+                grid-column: 1 / span 2;
+                grid-row: auto;
+            }
+        }
+
+        @media (max-width: 820px) {
+            .container {
+                width: min(calc(100% - 32px), var(--content));
+            }
+
+            .desktop-nav {
+                display: none;
+            }
+
+            .mobile-menu {
+                display: block;
+            }
+
+            .hero {
+                min-height: auto;
+                padding: 54px 0 104px;
+            }
+
+            .hero-grid {
+                grid-template-columns: 1fr;
+                gap: 50px;
+            }
+
+            .hero-copy {
+                max-width: 660px;
+            }
+
+            .hero h1 {
+                font-size: clamp(3.15rem, 12vw, 4.65rem);
+            }
+
+            .hero-visual {
+                height: 500px;
+                min-height: 0;
+                margin-left: 34px;
+            }
+
+            .hero-phone {
+                left: -34px;
+            }
+
+            .proof-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .proof-item,
+            .proof-item:first-child,
+            .proof-item:last-child {
+                min-height: 100px;
+                padding: 20px;
+                border-left: 0;
+                border-bottom: 1px solid var(--line);
+            }
+
+            .proof-item:nth-child(even) {
+                border-left: 1px solid var(--line);
+            }
+
+            .proof-item:nth-last-child(-n + 2) {
+                border-bottom: 0;
+            }
+
+            .screen-grid {
+                width: calc(100vw - 16px);
+                margin-left: calc((100vw - min(calc(100vw - 32px), var(--content))) / -2);
+                display: flex;
+                gap: 16px;
+                overflow-x: auto;
+                padding: 4px 16px 24px;
+                scroll-padding-inline: 16px;
+                scroll-snap-type: x mandatory;
+            }
+
+            .screen-card,
+            .screen-card:nth-child(2),
+            .screen-card:nth-child(3) {
+                width: min(78vw, 420px);
+                flex: 0 0 auto;
+                margin-top: 0;
+                scroll-snap-align: start;
+            }
+
+            .journey {
+                grid-template-columns: 1fr;
+            }
+
+            .journey-item,
+            .journey-item:first-child,
+            .journey-item:last-child {
+                min-height: auto;
+                padding: 30px 0;
+                border-left: 0;
+                border-bottom: 1px solid var(--line);
+            }
+
+            .journey-kicker {
+                margin-bottom: 28px;
+            }
+
+            .trust-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-grid {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .footer-links {
+                justify-content: flex-start;
+            }
+        }
+
+        @media (max-width: 560px) {
+            .container {
+                width: min(calc(100% - 28px), var(--content));
+            }
+
+            .nav-inner {
+                min-height: 66px;
+            }
+
+            .brand img {
+                width: 112px;
+                height: 34px;
+            }
+
+            .hero {
+                padding-top: 42px;
+            }
+
+            .hero h1 {
+                font-size: clamp(2.8rem, 13vw, 3.75rem);
+            }
+
+            .hero-actions {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .button {
+                width: 100%;
+            }
+
+            .hero-visual {
+                height: 390px;
+                margin-left: 18px;
+            }
+
+            .hero-phone {
+                bottom: -48px;
+                left: -18px;
+                width: 172px;
+            }
+
+            .proof-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .proof-item,
+            .proof-item:first-child,
+            .proof-item:last-child,
+            .proof-item:nth-child(even),
+            .proof-item:nth-last-child(-n + 2) {
+                min-height: auto;
+                padding: 18px 0;
+                border-left: 0;
+                border-bottom: 1px solid var(--line);
+            }
+
+            .proof-item:last-child {
+                border-bottom: 0;
+            }
+
+            .services-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto;
+            }
+
+            .service-main {
+                grid-column: auto;
+                min-height: 390px;
+            }
+
+            .service {
+                min-height: 210px;
+            }
+
+            .trust-item {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .closing-panel {
+                padding: 40px 24px;
+            }
+
+            .screen-grid {
+                width: calc(100vw - 7px);
+                margin-left: -7px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            html {
+                scroll-behavior: auto;
+            }
+
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                scroll-behavior: auto !important;
+                transition-duration: 0.01ms !important;
+            }
         }
     </style>
 </head>
-<body class="bg-white text-gray-900 antialiased" x-data="{ mobileMenu: false }">
+<body>
+    <nav class="site-nav" aria-label="Navigasi utama">
+        <div class="container nav-inner">
+            <a class="brand" href="/" aria-label="TRIVA beranda">
+                <img src="{{ asset('landing/triva-logo.png') }}" alt="TRIVA" width="126" height="38">
+            </a>
 
-    {{-- ══════════════════════════════════════════════════════════════ --}}
-    {{-- NAVBAR                                                        --}}
-    {{-- ══════════════════════════════════════════════════════════════ --}}
-    <nav class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
-        <div class="mx-auto max-w-6xl px-6 lg:px-8">
-            <div class="flex h-16 items-center justify-between">
-                {{-- Logo / Brand --}}
-                <a href="/" class="flex items-center gap-2.5 group">
-                    <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 shadow-sm transition-shadow group-hover:shadow-md">
-                        <svg class="h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
-                        </svg>
-                    </div>
-                    <span class="text-lg font-bold tracking-tight text-gray-900">Laravel Starter</span>
-                </a>
+            <div class="desktop-nav">
+                <a href="#layanan">Layanan</a>
+                <a href="#pengalaman">Tampilan aplikasi</a>
+                <a href="#cara-kerja">Cara kerja</a>
+                <a href="{{ route('privacy-policy') }}">Privasi</a>
+                <a class="button button-primary" href="https://triva.web.app/">Buka TRIVA</a>
+            </div>
 
-                {{-- Desktop nav links --}}
-                <div class="hidden items-center gap-2 md:flex">
-                    <a href="#features" class="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-600">Fitur</a>
-                    <a href="#quickstart" class="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-600">Quick Start</a>
-                    <a href="/articles" class="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-600">Berita AI</a>
-                    <a href="/docs/api" class="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-600">API Docs</a>
-                    <a href="/admin" class="ml-1 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md">
-                        <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
-                        </svg>
-                        Admin Panel
-                    </a>
+            <details class="mobile-menu">
+                <summary>Menu</summary>
+                <div class="mobile-menu-panel">
+                    <a href="#layanan">Layanan</a>
+                    <a href="#pengalaman">Tampilan aplikasi</a>
+                    <a href="#cara-kerja">Cara kerja</a>
+                    <a href="{{ route('privacy-policy') }}">Privasi</a>
+                    <a class="button button-primary" href="https://triva.web.app/">Buka TRIVA</a>
                 </div>
-
-                {{-- Mobile hamburger --}}
-                <button @click="mobileMenu = !mobileMenu" class="rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 md:hidden" aria-label="Toggle menu">
-                    <svg x-show="!mobileMenu" class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                    </svg>
-                    <svg x-show="mobileMenu" x-cloak class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-
-            {{-- Mobile menu panel --}}
-            <div x-show="mobileMenu"
-                 x-cloak
-                 x-transition:enter="transition ease-out duration-200"
-                 x-transition:enter-start="opacity-0"
-                 x-transition:enter-end="opacity-100"
-                 x-transition:leave="transition ease-in duration-150"
-                 x-transition:leave-start="opacity-100"
-                 x-transition:leave-end="opacity-0"
-                 class="flex flex-col gap-1 border-t border-gray-100 pb-4 pt-3 md:hidden">
-                <a href="#features" @click="mobileMenu = false" class="rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-600">Fitur</a>
-                <a href="#quickstart" @click="mobileMenu = false" class="rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-600">Quick Start</a>
-                <a href="/articles" @click="mobileMenu = false" class="rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-600">Berita AI</a>
-                <a href="/docs/api" class="rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-600">API Docs</a>
-                <a href="/admin" class="mt-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-700">
-                    <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
-                    </svg>
-                    Admin Panel
-                </a>
-            </div>
+            </details>
         </div>
     </nav>
 
-    {{-- ══════════════════════════════════════════════════════════════ --}}
-    {{-- HERO SECTION                                                  --}}
-    {{-- ══════════════════════════════════════════════════════════════ --}}
-    <section class="relative overflow-hidden pt-32 pb-20 lg:pt-40 lg:pb-28" style="background: linear-gradient(135deg, #f9fafb 0%, #eff6ff 50%, #f9fafb 100%);">
-        {{-- Subtle decorative dots --}}
-        <div class="absolute inset-0" style="opacity: 0.03; background-image: radial-gradient(circle, #2563eb 1px, transparent 1px); background-size: 24px 24px;"></div>
+    <main>
+        <section class="hero">
+            <div class="container hero-grid">
+                <div class="hero-copy">
+                    <p class="eyebrow">Ekosistem layanan otomotif</p>
+                    <h1>Mobil Anda, <span>satu aplikasi.</span></h1>
+                    <p class="hero-lede">
+                        Appraisal, booking servis, simulasi kredit, dan estimasi perbaikan dalam satu aplikasi yang transparan.
+                    </p>
+                    <div class="hero-actions">
+                        <a class="button button-primary" href="https://triva.web.app/">Buka TRIVA</a>
+                        <a class="button button-secondary" href="#layanan">Jelajahi layanan</a>
+                    </div>
+                </div>
 
-        <div class="relative mx-auto max-w-6xl px-6 text-center lg:px-8">
-            {{-- Badge --}}
-            <div class="animate-fade-in-up mb-8 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-4 py-1.5">
-                <span class="h-2 w-2 rounded-full bg-blue-500" style="animation: pulse 2s cubic-bezier(.4,0,.6,1) infinite;"></span>
-                <span class="text-sm font-medium text-blue-700">Laravel 13 + Filament 5 + Passport OAuth2</span>
+                <div class="hero-visual">
+                    <picture>
+                        <source srcset="{{ asset('landing/triva-service-bay.webp') }}" type="image/webp">
+                        <img
+                            class="hero-photo"
+                            src="{{ asset('landing/triva-service-bay.jpg') }}"
+                            alt="Kendaraan keluarga berwarna navy di area servis modern"
+                            width="1536"
+                            height="1024"
+                            fetchpriority="high"
+                        >
+                    </picture>
+                    <img
+                        class="hero-phone"
+                        src="{{ asset('landing/app-home.webp') }}"
+                        alt="Desain layar Beranda aplikasi TRIVA"
+                        width="720"
+                        height="1518"
+                        fetchpriority="high"
+                    >
+                </div>
             </div>
+        </section>
 
-            {{-- Headline --}}
-            <h1 class="animate-fade-in-up delay-100 mx-auto max-w-4xl text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl" style="line-height: 1.1;">
-                Fondasi Backend yang
-                <span style="background: linear-gradient(to right, #2563eb, #1d4ed8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Siap Produksi</span>
-            </h1>
+        <section class="proof-strip" aria-label="Keunggulan TRIVA">
+            <div class="container proof-grid">
+                <div class="proof-item">
+                    <p><strong>Satu profil kendaraan</strong>Dipakai ulang di seluruh layanan.</p>
+                </div>
+                <div class="proof-item">
+                    <p><strong>Status yang jelas</strong>Pantau progres dari aplikasi.</p>
+                </div>
+                <div class="proof-item">
+                    <p><strong>Keputusan transparan</strong>Asumsi dan disclaimer selalu terlihat.</p>
+                </div>
+                <div class="proof-item">
+                    <p><strong>Masuk dengan Google</strong>Akses ringkas tanpa password tambahan.</p>
+                </div>
+            </div>
+        </section>
 
-            {{-- Subheadline --}}
-            <p class="animate-fade-in-up delay-200 mx-auto mt-6 max-w-2xl text-lg text-gray-500 sm:text-xl" style="line-height: 1.7;">
-                Starter project berbasis Laravel &amp; PostgreSQL — dirancang sebagai fondasi <strong class="text-gray-700">API backend untuk Flutter</strong> dan <strong class="text-gray-700">back-office web UI</strong> dengan Filament.
-                Bersih, konsisten, dan siap dikembangkan.
-            </p>
+        <section id="layanan" class="section">
+            <div class="container">
+                <header class="section-heading reveal">
+                    <h2>Lima layanan untuk perjalanan kendaraan Anda.</h2>
+                    <p>
+                        Mulai dari mengetahui nilai mobil hingga merawat dan membiayai kendaraan berikutnya, semua berada dalam alur yang konsisten.
+                    </p>
+                </header>
 
-            {{-- CTA Buttons --}}
-            <div class="animate-fade-in-up delay-300 mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-                <a href="/admin" class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-7 py-3.5 text-base font-semibold text-white shadow-lg transition-all hover:bg-blue-700 hover:shadow-xl" style="box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.35);">
-                    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
-                    </svg>
-                    Buka Admin Panel
+                <div class="services-grid reveal">
+                    <article class="service service-main">
+                        <p>Nilai kendaraan berbasis data dan tinjauan kondisi.</p>
+                        <h3>Trade-in Appraisal</h3>
+                    </article>
+                    <article class="service service-teal">
+                        <p>Ajukan preferensi workshop atau layanan rumah.</p>
+                        <h3>Booking Toyota</h3>
+                    </article>
+                    <article class="service">
+                        <p>Temukan alur servis untuk kendaraan non-Toyota.</p>
+                        <h3>Booking OtoXpert</h3>
+                    </article>
+                    <article class="service">
+                        <p>Bandingkan skenario pembiayaan dengan input yang jelas.</p>
+                        <h3>Simulasi Kredit</h3>
+                    </article>
+                    <article class="service service-navy">
+                        <p>Kirim foto kerusakan dan ikuti proses estimasi.</p>
+                        <h3>Estimasi Body &amp; Paint</h3>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section id="pengalaman" class="section product-section">
+            <div class="container">
+                <header class="section-heading reveal">
+                    <h2>Dibuat agar setiap progres mudah dipahami.</h2>
+                    <p>
+                        Desain aplikasi menempatkan tindakan utama, status, dan informasi keputusan dalam hierarki yang nyaman dibaca.
+                    </p>
+                </header>
+
+                <div class="screen-grid reveal">
+                    <figure class="screen-card">
+                        <img
+                            src="{{ asset('landing/app-home.webp') }}"
+                            alt="Desain layar Beranda TRIVA dengan lima layanan utama"
+                            width="720"
+                            height="1518"
+                            loading="lazy"
+                        >
+                        <figcaption>
+                            <strong>Beranda yang terarah</strong>
+                            <span>Lima layanan utama dan aktivitas terkini berada dalam satu pandangan.</span>
+                        </figcaption>
+                    </figure>
+
+                    <figure class="screen-card">
+                        <img
+                            src="{{ asset('landing/appraisal-result.webp') }}"
+                            alt="Desain layar hasil appraisal kendaraan di TRIVA"
+                            width="720"
+                            height="1518"
+                            loading="lazy"
+                        >
+                        <figcaption>
+                            <strong>Hasil yang dapat ditelusuri</strong>
+                            <span>Kisaran harga, pembanding, masa berlaku, dan disclaimer tampil bersama.</span>
+                        </figcaption>
+                    </figure>
+
+                    <figure class="screen-card">
+                        <img
+                            src="{{ asset('landing/booking-status.webp') }}"
+                            alt="Desain layar status permintaan booking servis di TRIVA"
+                            width="720"
+                            height="1518"
+                            loading="lazy"
+                        >
+                        <figcaption>
+                            <strong>Status tanpa asumsi</strong>
+                            <span>Preferensi jadwal tetap dibedakan dari booking yang sudah dikonfirmasi.</span>
+                        </figcaption>
+                    </figure>
+                </div>
+            </div>
+        </section>
+
+        <section id="cara-kerja" class="section">
+            <div class="container">
+                <header class="section-heading reveal">
+                    <h2>Dari kebutuhan sampai keputusan.</h2>
+                    <p>
+                        TRIVA menjaga konteks kendaraan Anda agar setiap layanan dimulai dengan informasi yang relevan.
+                    </p>
+                </header>
+
+                <div class="journey reveal">
+                    <article class="journey-item">
+                        <span class="journey-kicker">Simpan kendaraan</span>
+                        <h3>Mulai dari data yang sama.</h3>
+                        <p>Profil kendaraan dapat dipakai kembali tanpa mengulang seluruh input pada setiap layanan.</p>
+                    </article>
+                    <article class="journey-item">
+                        <span class="journey-kicker">Pilih layanan</span>
+                        <h3>Ikuti alur yang relevan.</h3>
+                        <p>Setiap layanan menampilkan data, consent, dan disclaimer sesuai kebutuhan keputusan Anda.</p>
+                    </article>
+                    <article class="journey-item">
+                        <span class="journey-kicker">Pantau progres</span>
+                        <h3>Ketahui apa yang terjadi.</h3>
+                        <p>Status, tindakan berikutnya, dan hasil akhir tetap tersedia meski notifikasi terlambat.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="trust-section">
+            <div class="container trust-grid reveal">
+                <h2>Informasi jujur untuk keputusan yang lebih tenang.</h2>
+                <div class="trust-list">
+                    <article class="trust-item">
+                        <strong>Hasil tetap indikatif</strong>
+                        <p>Appraisal dan estimasi menjelaskan asumsi, sumber, serta kebutuhan inspeksi sebelum menjadi penawaran final.</p>
+                    </article>
+                    <article class="trust-item">
+                        <strong>Jadwal tidak dianggap final</strong>
+                        <p>Preferensi servis baru berstatus terkonfirmasi setelah petugas atau sistem partner menyetujuinya.</p>
+                    </article>
+                    <article class="trust-item">
+                        <strong>Data tetap terlindungi</strong>
+                        <p>Akses akun memakai Google dan foto kendaraan disimpan melalui jalur akses yang terbatas.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="closing">
+            <div class="container">
+                <div class="closing-panel reveal">
+                    <h2>Kebutuhan mobil Anda, kini lebih terhubung.</h2>
+                    <p>
+                        Masuk ke TRIVA dan mulai dari kendaraan yang ingin Anda appraisal, servis, biayai, atau perbaiki.
+                    </p>
+                    <a class="button" href="https://triva.web.app/">Buka TRIVA</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-grid">
+            <div>
+                <a class="footer-brand" href="/" aria-label="TRIVA beranda">
+                    <img src="{{ asset('landing/triva-logo.png') }}" alt="TRIVA" width="116" height="36" loading="lazy">
                 </a>
-                <a href="/docs/api" class="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-7 py-3.5 text-base font-semibold text-gray-700 shadow-sm transition-all hover:border-gray-300 hover:bg-gray-50 hover:shadow-md">
-                    <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-                    </svg>
-                    Lihat API Docs
-                </a>
+                <p class="footer-copy">
+                    Platform layanan otomotif yang menghubungkan data kendaraan, proses layanan, dan keputusan pelanggan.
+                </p>
             </div>
-
-            {{-- Tech pills --}}
-            <div class="animate-fade-in-up delay-400 mt-12 flex flex-wrap items-center justify-center gap-3">
-                @foreach (['Laravel 13', 'PHP 8.3+', 'PostgreSQL', 'Filament 5', 'Passport OAuth2', 'Spatie RBAC', 'Redis'] as $tech)
-                    <span class="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-500">{{ $tech }}</span>
-                @endforeach
-            </div>
-        </div>
-    </section>
-
-    {{-- ══════════════════════════════════════════════════════════════ --}}
-    {{-- FEATURES SECTION                                              --}}
-    {{-- ══════════════════════════════════════════════════════════════ --}}
-    <section id="features" class="bg-white py-20 lg:py-28">
-        <div class="mx-auto max-w-6xl px-6 lg:px-8">
-            {{-- Section header --}}
-            <div class="mb-16 text-center">
-                <span class="mb-4 inline-block rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-blue-600">Fitur Unggulan</span>
-                <h2 class="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">Semua yang Anda Butuhkan, Sudah Tersedia</h2>
-                <p class="mx-auto mt-4 max-w-2xl text-lg text-gray-500">Satu starter project dengan arsitektur yang bersih, fitur enterprise-grade, dan konvensi yang konsisten.</p>
-            </div>
-
-            {{-- Feature cards grid --}}
-            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-
-                {{-- Feature 1: API-First Backend --}}
-                <div class="feature-card rounded-2xl border border-gray-100 p-7" style="background-color: rgba(249,250,251,0.5);">
-                    <div class="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50">
-                        <svg class="h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
-                        </svg>
-                    </div>
-                    <h3 class="mb-2 text-lg font-bold text-gray-900">API-First Backend</h3>
-                    <p class="text-sm leading-relaxed text-gray-500">Token-based authentication via OAuth2 (Laravel Passport) dengan format JSON response yang konsisten — siap dikonsumsi oleh Flutter client.</p>
-                </div>
-
-                {{-- Feature 2: Filament Back-office --}}
-                <div class="feature-card rounded-2xl border border-gray-100 p-7" style="background-color: rgba(249,250,251,0.5);">
-                    <div class="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50">
-                        <svg class="h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
-                        </svg>
-                    </div>
-                    <h3 class="mb-2 text-lg font-bold text-gray-900">Filament Admin Panel</h3>
-                    <p class="text-sm leading-relaxed text-gray-500">Back-office UI lengkap berbasis Filament 5 untuk user management, role &amp; permission, dan CRUD data master — tanpa perlu coding UI sendiri.</p>
-                </div>
-
-                {{-- Feature 3: RBAC Spatie --}}
-                <div class="feature-card rounded-2xl border border-gray-100 p-7" style="background-color: rgba(249,250,251,0.5);">
-                    <div class="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50">
-                        <svg class="h-5 w-5 text-emerald-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
-                        </svg>
-                    </div>
-                    <h3 class="mb-2 text-lg font-bold text-gray-900">RBAC Terpadu (Spatie)</h3>
-                    <p class="text-sm leading-relaxed text-gray-500">Satu sistem role &amp; permission (spatie/laravel-permission) yang dipakai bersama oleh API guard dan web guard — single source of truth.</p>
-                </div>
-
-                {{-- Feature 4: API Docs (Scramble) --}}
-                <div class="feature-card rounded-2xl border border-gray-100 p-7" style="background-color: rgba(249,250,251,0.5);">
-                    <div class="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50">
-                        <svg class="h-5 w-5 text-amber-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
-                        </svg>
-                    </div>
-                    <h3 class="mb-2 text-lg font-bold text-gray-900">API Docs Interaktif</h3>
-                    <p class="text-sm leading-relaxed text-gray-500">Dokumentasi API auto-generated oleh Scramble dengan OpenAPI spec — tersedia di <code style="font-size: 0.75rem; background: #f3f4f6; padding: 2px 6px; border-radius: 4px;">/docs/api</code> saat environment local.</p>
-                </div>
-
-                {{-- Feature 5: Firebase Push Notification --}}
-                <div class="feature-card rounded-2xl border border-gray-100 p-7" style="background-color: rgba(249,250,251,0.5);">
-                    <div class="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-rose-50">
-                        <svg class="h-5 w-5 text-rose-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
-                        </svg>
-                    </div>
-                    <h3 class="mb-2 text-lg font-bold text-gray-900">Firebase Push Notification</h3>
-                    <p class="text-sm leading-relaxed text-gray-500">Integrasi Firebase Cloud Messaging (FCM) untuk pengiriman push notification asinkron ke Flutter client melalui queue worker.</p>
-                </div>
-
-                {{-- Feature 6: Database Wilayah Indonesia --}}
-                <div class="feature-card rounded-2xl border border-gray-100 p-7" style="background-color: rgba(249,250,251,0.5);">
-                    <div class="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-sky-50">
-                        <svg class="h-5 w-5 text-sky-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-                        </svg>
-                    </div>
-                    <h3 class="mb-2 text-lg font-bold text-gray-900">Wilayah Global</h3>
-                    <p class="text-sm leading-relaxed text-gray-500">Database 249.036 data administratif global (seluruh negara di dunia) dengan offline seeding via JSON fixtures.</p>
-                </div>
-
-                {{-- Feature 7: Asset Management & GCS Storage --}}
-                <div class="feature-card rounded-2xl border border-gray-100 p-7" style="background-color: rgba(249,250,251,0.5);">
-                    <div class="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50">
-                        <svg class="h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z" />
-                        </svg>
-                    </div>
-                    <h3 class="mb-2 text-lg font-bold text-gray-900">Manajemen Aset & GCS</h3>
-                    <p class="text-sm leading-relaxed text-gray-500">Unggah file transaksional secara atomik ke Google Cloud Storage dengan enkapsulasi UUID, dedup checksum sha256, ekstraksi metadata gambar/PDF otomatis, dan pembersihan 2-fase harian.</p>
-                </div>
-
-            </div>
-        </div>
-    </section>
-
-    {{-- ══════════════════════════════════════════════════════════════ --}}
-    {{-- QUICK START SECTION                                           --}}
-    {{-- ══════════════════════════════════════════════════════════════ --}}
-    <section id="quickstart" class="bg-gray-50 py-20 lg:py-28">
-        <div class="mx-auto max-w-6xl px-6 lg:px-8">
-            <div class="mb-16 text-center">
-                <span class="mb-4 inline-block rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-blue-600">Memulai Cepat</span>
-                <h2 class="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">Siap dalam 12 Menit</h2>
-                <p class="mx-auto mt-4 max-w-2xl text-lg text-gray-500">Clone repository, jalankan empat perintah berikut, dan langsung mulai develop.</p>
-            </div>
-
-            <div class="mx-auto max-w-3xl">
-                {{-- Terminal-style code block --}}
-                <div class="overflow-hidden rounded-2xl border border-gray-800 shadow-xl" style="background: #1e1e2e;">
-                    {{-- Terminal header --}}
-                    <div class="flex items-center gap-2 border-b border-gray-700 px-5 py-3">
-                        <span class="h-3 w-3 rounded-full" style="background: #ff5f57;"></span>
-                        <span class="h-3 w-3 rounded-full" style="background: #febc2e;"></span>
-                        <span class="h-3 w-3 rounded-full" style="background: #28c840;"></span>
-                        <span class="ml-3 text-xs text-gray-400">Terminal</span>
-                    </div>
-                    {{-- Code content --}}
-                    <div class="p-6 font-mono text-sm leading-7" style="color: #cdd6f4;">
-                        <div>
-                            <span style="color: #6c7086;"># Langkah 1 — Install dependensi & build assets (Membuat .env)</span>
-                        </div>
-                        <div>
-                            <span style="color: #a6e3a1;">$</span> <span>composer run setup</span>
-                        </div>
-                        <div class="mt-4">
-                            <span style="color: #6c7086;"># Langkah 2 — Konfigurasi kredensial database Anda di file .env</span>
-                        </div>
-                        <div class="mt-4">
-                            <span style="color: #6c7086;"># Langkah 3 — Migrasi database & seed data awal</span>
-                        </div>
-                        <div>
-                            <span style="color: #a6e3a1;">$</span> <span>php artisan migrate:fresh --seed</span>
-                        </div>
-                        <div class="mt-4">
-                            <span style="color: #6c7086;"># Langkah 4 — Kunci Passport & Storage Symlink</span>
-                        </div>
-                        <div>
-                            <span style="color: #a6e3a1;">$</span> <span>php artisan passport:keys --force</span>
-                        </div>
-                        <div>
-                            <span style="color: #a6e3a1;">$</span> <span>php artisan storage:link</span>
-                        </div>
-                        <div class="mt-4">
-                            <span style="color: #6c7086;"># Langkah 5 — Buat Password Client (Salin Secret ke .env!)</span>
-                        </div>
-                        <div>
-                            <span style="color: #a6e3a1;">$</span> <span>php artisan passport:client --password</span>
-                        </div>
-                        <div class="mt-4">
-                            <span style="color: #6c7086;"># Langkah 6 — Unduh & jalankan seeder wilayah global offline</span>
-                        </div>
-                        <div>
-                            <span style="color: #a6e3a1;">$</span> <span>php artisan regions:download</span>
-                        </div>
-                        <div>
-                            <span style="color: #a6e3a1;">$</span> <span>php artisan db:seed --class=RegionSeeder</span>
-                        </div>
-                        <div class="mt-4">
-                            <span style="color: #6c7086;"># Langkah 7 — Jalankan server dev lokal</span>
-                        </div>
-                        <div>
-                            <span style="color: #a6e3a1;">$</span> <span>composer run dev</span>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Notes below terminal --}}
-                <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-6">
-                    <div class="flex items-start gap-2">
-                        <svg class="mt-0.5 h-4 w-4 shrink-0 text-amber-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
-                        </svg>
-                        <p class="text-xs text-gray-500">Simpan <strong class="text-gray-700">Client ID</strong> &amp; <strong class="text-gray-700">Client Secret</strong> dari Passport ke <code style="font-size: 0.7rem; background: #f3f4f6; padding: 1px 5px; border-radius: 3px;">.env</code></p>
-                    </div>
-                    <div class="flex items-start gap-2">
-                        <svg class="mt-0.5 h-4 w-4 shrink-0 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                        </svg>
-                        <p class="text-xs text-gray-500">Untuk Docker, gunakan <code style="font-size: 0.7rem; background: #f3f4f6; padding: 1px 5px; border-radius: 3px;">./vendor/bin/sail</code> — lihat detail di README</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    {{-- ══════════════════════════════════════════════════════════════ --}}
-    {{-- ACCESS POINTS & CREDENTIALS SECTION                           --}}
-    {{-- ══════════════════════════════════════════════════════════════ --}}
-    <section id="access" class="bg-white py-20 lg:py-28">
-        <div class="mx-auto max-w-6xl px-6 lg:px-8">
-            <div class="mb-16 text-center">
-                <span class="mb-4 inline-block rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-blue-600">Akses Aplikasi</span>
-                <h2 class="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">Endpoint yang Tersedia</h2>
-                <p class="mx-auto mt-4 max-w-2xl text-lg text-gray-500">Setelah server dev berjalan, akses layanan berikut di browser.</p>
-            </div>
-
-            {{-- Access Points Grid --}}
-            <div class="mx-auto grid max-w-4xl grid-cols-1 gap-4 sm:grid-cols-2">
-                {{-- Landing Page --}}
-                <a href="/" class="group flex items-center gap-4 rounded-xl border border-gray-100 bg-gray-50 p-5 transition-all hover:border-blue-200 hover:bg-blue-50">
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm">
-                        <svg class="h-5 w-5 text-gray-400 transition-colors group-hover:text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="text-sm font-semibold text-gray-900">Landing Page</p>
-                        <p class="text-xs text-gray-400">localhost:8000</p>
-                    </div>
-                </a>
-
-                {{-- Admin Panel --}}
-                <a href="/admin" class="group flex items-center gap-4 rounded-xl border border-gray-100 bg-gray-50 p-5 transition-all hover:border-blue-200 hover:bg-blue-50">
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm">
-                        <svg class="h-5 w-5 text-gray-400 transition-colors group-hover:text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="text-sm font-semibold text-gray-900">Admin Panel (Filament)</p>
-                        <p class="text-xs text-gray-400">localhost:8000/admin</p>
-                    </div>
-                </a>
-
-                {{-- API Docs --}}
-                <a href="/docs/api" class="group flex items-center gap-4 rounded-xl border border-gray-100 bg-gray-50 p-5 transition-all hover:border-blue-200 hover:bg-blue-50">
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm">
-                        <svg class="h-5 w-5 text-gray-400 transition-colors group-hover:text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="text-sm font-semibold text-gray-900">API Docs (Scramble)</p>
-                        <p class="text-xs text-gray-400">localhost:8000/docs/api</p>
-                    </div>
-                </a>
-
-                {{-- Berita AI (Public Blog) --}}
-                <a href="/articles" class="group flex items-center gap-4 rounded-xl border border-gray-100 bg-gray-50 p-5 transition-all hover:border-blue-200 hover:bg-blue-50">
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm">
-                        <svg class="h-5 w-5 text-gray-400 transition-colors group-hover:text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18V6.125c0-.621.504-1.125 1.125-1.125H9.75M8.25 21h8.25" />
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="text-sm font-semibold text-gray-900">Berita AI &amp; Blog (Tanpa Login)</p>
-                        <p class="text-xs text-gray-400">localhost:8000/articles</p>
-                    </div>
-                </a>
-
-                {{-- Health Check --}}
-                <a href="/api/v1/health" class="group flex items-center gap-4 rounded-xl border border-gray-100 bg-gray-50 p-5 transition-all hover:border-blue-200 hover:bg-blue-50">
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm">
-                        <svg class="h-5 w-5 text-gray-400 transition-colors group-hover:text-emerald-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="text-sm font-semibold text-gray-900">Health Check API</p>
-                        <p class="text-xs text-gray-400">localhost:8000/api/v1/health</p>
-                    </div>
-                </a>
-            </div>
-
-            {{-- Default Credentials --}}
-            <div class="mx-auto mt-10 max-w-4xl">
-                <div class="rounded-xl border border-blue-100 p-6" style="background: linear-gradient(135deg, #eff6ff 0%, #eff6ff 100%);">
-                    <div class="flex items-start gap-3">
-                        <svg class="mt-0.5 h-5 w-5 shrink-0 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
-                        </svg>
-                        <div>
-                            <p class="text-sm font-semibold text-gray-900">Kredensial Default (Seeder)</p>
-                            <p class="mt-1 text-sm text-gray-600">
-                                Email: <code style="font-size: 0.8rem; background: rgba(255,255,255,0.7); padding: 2px 8px; border-radius: 4px; font-weight: 600;">admin@example.com</code>
-                                &nbsp;·&nbsp;
-                                Password: <code style="font-size: 0.8rem; background: rgba(255,255,255,0.7); padding: 2px 8px; border-radius: 4px; font-weight: 600;">password</code>
-                                &nbsp;·&nbsp;
-                                Role: <span class="font-medium text-blue-600">super-admin</span>
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    {{-- ══════════════════════════════════════════════════════════════ --}}
-    {{-- FOOTER                                                        --}}
-    {{-- ══════════════════════════════════════════════════════════════ --}}
-    <footer class="border-t border-gray-100 bg-gray-50">
-        <div class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-10 sm:flex-row lg:px-8">
-            <p class="text-sm text-gray-400">
-                Laravel Starter &mdash; v{{ app()->version() }}
-            </p>
-            <div class="flex items-center gap-6">
-                <a href="{{ route('privacy-policy') }}" class="text-sm text-gray-500 transition-colors hover:text-blue-600">Kebijakan Privasi</a>
-                <a href="/admin" class="text-sm text-gray-500 transition-colors hover:text-blue-600">Admin Panel</a>
-                <a href="/docs/api" class="text-sm text-gray-500 transition-colors hover:text-blue-600">API Docs</a>
-                <a href="https://laravel.com/docs" target="_blank" rel="noopener" class="text-sm text-gray-500 transition-colors hover:text-blue-600">Laravel Docs</a>
+            <div class="footer-links">
+                <a href="{{ route('privacy-policy') }}">Kebijakan Privasi</a>
+                <a href="{{ route('account-deletion') }}">Penghapusan Akun</a>
+                <a href="{{ route('public.articles.index') }}">Artikel</a>
+                <span>&copy; {{ date('Y') }} TRIVA</span>
             </div>
         </div>
     </footer>
-
-    {{-- Alpine.js (lightweight, for mobile menu toggle only) --}}
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
 </body>
 </html>
