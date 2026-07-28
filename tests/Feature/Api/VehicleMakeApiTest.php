@@ -118,6 +118,93 @@ class VehicleMakeApiTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_seeded_2026_catalog_covers_honda_daihatsu_and_suzuki(): void
+    {
+        Passport::actingAs(User::factory()->create());
+
+        $expectedCatalog = [
+            'honda' => [
+                'model_count' => 13,
+                'variant_count' => 29,
+                'sample_model' => 'HRV',
+                'sample_variant' => 'RS e:HEV',
+                'fuel_type' => 'hybrid',
+            ],
+            'daihatsu' => [
+                'model_count' => 10,
+                'variant_count' => 64,
+                'sample_model' => 'Rocky Hybrid',
+                'sample_variant' => '1.2L e-SMART Hybrid',
+                'fuel_type' => 'hybrid',
+            ],
+            'suzuki' => [
+                'model_count' => 11,
+                'variant_count' => 46,
+                'sample_model' => 'e-Vitara',
+                'sample_variant' => 'GLX Single Tone',
+                'fuel_type' => 'electric',
+            ],
+        ];
+
+        foreach ($expectedCatalog as $makeSlug => $expected) {
+            $make = VehicleMake::query()
+                ->where('slug', $makeSlug)
+                ->firstOrFail();
+            $variants = VehicleVariant::query()
+                ->whereHas(
+                    'vehicleModel',
+                    fn ($query) => $query
+                        ->where('vehicle_make_id', $make->id)
+                        ->where('is_active', true),
+                )
+                ->where('is_active', true)
+                ->where('year_from', '<=', 2026)
+                ->where(fn ($query) => $query
+                    ->whereNull('year_to')
+                    ->orWhere('year_to', '>=', 2026));
+
+            $this->assertSame(
+                $expected['model_count'],
+                (clone $variants)->distinct()->count('vehicle_model_id'),
+            );
+            $this->assertSame(
+                $expected['variant_count'],
+                (clone $variants)->count(),
+            );
+            $this->assertSame(
+                $expected['variant_count'],
+                (clone $variants)
+                    ->whereNotNull('source_url')
+                    ->whereDate('source_checked_at', '2026-07-28')
+                    ->count(),
+            );
+
+            $sampleModel = VehicleModel::query()
+                ->where('vehicle_make_id', $make->id)
+                ->where('name', $expected['sample_model'])
+                ->firstOrFail();
+
+            $this->getJson(
+                "/api/v1/vehicle-models/{$sampleModel->id}/variants?year=2026",
+            )
+                ->assertOk()
+                ->assertJsonFragment([
+                    'model_id' => $sampleModel->id,
+                    'name' => $expected['sample_variant'],
+                    'transmission' => 'automatic',
+                    'fuel_type' => $expected['fuel_type'],
+                ]);
+        }
+
+        $this->seed(VehicleVariantSeeder::class);
+
+        $this->assertSame(
+            200,
+            VehicleVariant::query()->count(),
+            'VehicleVariantSeeder must remain idempotent.',
+        );
+    }
+
     public function test_vehicle_can_use_canonical_variant_or_manual_fallback(): void
     {
         $user = User::factory()->create();
