@@ -123,6 +123,26 @@ class VehicleMakeApiTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_calya_exposes_four_model_scoped_master_variants(): void
+    {
+        Passport::actingAs(User::factory()->create());
+        $calya = VehicleModel::query()
+            ->whereHas(
+                'vehicleMake',
+                fn ($query) => $query->where('slug', 'toyota'),
+            )
+            ->where('name', 'Calya')
+            ->firstOrFail();
+
+        $this->getJson("/api/v1/vehicle-models/{$calya->id}/variants")
+            ->assertOk()
+            ->assertJsonCount(4, 'data')
+            ->assertJsonPath('data.0.name', '1.2 E MT STD')
+            ->assertJsonPath('data.1.name', '1.2 E MT')
+            ->assertJsonPath('data.2.name', '1.2 G MT')
+            ->assertJsonPath('data.3.name', '1.2 G AT');
+    }
+
     public function test_seeded_2026_catalog_covers_honda_daihatsu_and_suzuki(): void
     {
         Passport::actingAs(User::factory()->create());
