@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -18,6 +19,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $source_url
  * @property Carbon|null $source_checked_at
  * @property-read VehicleMake $vehicleMake
+ * @property-read Collection<int, VehicleVariant> $vehicleVariants
  */
 class VehicleModel extends Model
 {
@@ -56,5 +58,11 @@ class VehicleModel extends Model
     public function vehicles(): HasMany
     {
         return $this->hasMany(Vehicle::class);
+    }
+
+    /** @return HasMany<VehicleVariant, $this> */
+    public function vehicleVariants(): HasMany
+    {
+        return $this->hasMany(VehicleVariant::class);
     }
 }

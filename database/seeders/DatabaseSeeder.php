@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             AppConfigSeeder::class,
             VehicleMakeSeeder::class,
             VehicleModelSeeder::class,
+            VehicleVariantSeeder::class,
             ToyotaServiceMasterSeeder::class,
             OtoxpertMasterSeeder::class,
         ]);

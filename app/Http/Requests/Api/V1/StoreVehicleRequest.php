@@ -5,6 +5,7 @@ namespace App\Http\Requests\Api\V1;
 use App\Models\Region;
 use App\Models\VehicleMake;
 use App\Models\VehicleModel;
+use App\Models\VehicleVariant;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -29,12 +30,24 @@ class StoreVehicleRequest extends FormRequest
             'make' => ['required_without:make_id', 'nullable', 'string', 'max:80'],
             'model_id' => [
                 'nullable',
+                'required_with:variant_id',
                 'integer',
                 Rule::exists('vehicle_models', 'id')
                     ->where(fn ($query) => $query->where('is_active', true)),
             ],
             'model' => ['required_without:model_id', 'nullable', 'string', 'max:100'],
-            'variant' => ['required', 'string', 'max:120'],
+            'variant_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('vehicle_variants', 'id')
+                    ->where(fn ($query) => $query->where('is_active', true)),
+            ],
+            'variant' => [
+                'required_without:variant_id',
+                'nullable',
+                'string',
+                'max:120',
+            ],
             'year' => ['required', 'integer', 'min:1950', 'max:'.(now()->year + 1)],
             'transmission' => ['required', Rule::in(['automatic', 'manual'])],
             'fuel_type' => ['required', Rule::in(['gasoline', 'diesel', 'hybrid', 'electric'])],
@@ -96,6 +109,60 @@ class StoreVehicleRequest extends FormRequest
                     );
                 }
             },
+            function (Validator $validator): void {
+                if (! $this->filled('variant_id')) {
+                    return;
+                }
+
+                $variant = VehicleVariant::query()
+                    ->active()
+                    ->find($this->integer('variant_id'));
+
+                if ($variant === null) {
+                    return;
+                }
+
+                if (
+                    ! $this->filled('model_id')
+                    || $variant->vehicle_model_id !== $this->integer('model_id')
+                ) {
+                    $validator->errors()->add(
+                        'variant_id',
+                        'Varian harus berada pada model yang dipilih.',
+                    );
+                }
+
+                $year = $this->integer('year');
+                if (
+                    $year < $variant->year_from
+                    || ($variant->year_to !== null && $year > $variant->year_to)
+                ) {
+                    $validator->errors()->add(
+                        'variant_id',
+                        'Varian tidak tersedia untuk tahun kendaraan yang dipilih.',
+                    );
+                }
+
+                if (
+                    $variant->transmission !== null
+                    && $variant->transmission !== $this->string('transmission')->toString()
+                ) {
+                    $validator->errors()->add(
+                        'transmission',
+                        'Transmisi harus sesuai dengan varian yang dipilih.',
+                    );
+                }
+
+                if (
+                    $variant->fuel_type !== null
+                    && $variant->fuel_type !== $this->string('fuel_type')->toString()
+                ) {
+                    $validator->errors()->add(
+                        'fuel_type',
+                        'Jenis bahan bakar harus sesuai dengan varian yang dipilih.',
+                    );
+                }
+            },
         ];
     }
 
@@ -109,6 +176,8 @@ class StoreVehicleRequest extends FormRequest
             'vehicle_model_id',
             'model_id',
             'model',
+            'vehicle_variant_id',
+            'variant_id',
             'variant',
             'year',
             'transmission',
@@ -140,6 +209,17 @@ class StoreVehicleRequest extends FormRequest
             $data['vehicle_model_id'] = null;
         }
         unset($data['model_id']);
+
+        if (isset($data['variant_id'])) {
+            $variant = VehicleVariant::query()
+                ->whereKey($data['variant_id'])
+                ->firstOrFail();
+            $data['vehicle_variant_id'] = $data['variant_id'];
+            $data['variant'] = $variant->name;
+        } else {
+            $data['vehicle_variant_id'] = null;
+        }
+        unset($data['variant_id']);
 
         if (isset($data['city_id'])) {
             $data['city'] = Region::query()

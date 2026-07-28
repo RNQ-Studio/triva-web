@@ -17,6 +17,7 @@ class VehicleResource extends JsonResource
             'make' => $this->make,
             'model_id' => $this->vehicle_model_id,
             'model' => $this->model,
+            'variant_id' => $this->vehicle_variant_id,
             'variant' => $this->variant,
             'year' => $this->year,
             'transmission' => $this->transmission,
