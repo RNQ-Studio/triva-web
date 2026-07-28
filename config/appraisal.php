@@ -29,4 +29,22 @@ return [
         'dealer_margin_percent' => (float) env('APPRAISAL_DEALER_MARGIN_PERCENT', 7),
         'rounding' => (int) env('APPRAISAL_PRICE_ROUNDING', 500_000),
     ],
+    'ai' => [
+        'enabled' => filter_var(
+            env('APPRAISAL_AI_FALLBACK_ENABLED', false),
+            FILTER_VALIDATE_BOOL,
+        ),
+        'research_model' => env('APPRAISAL_AI_RESEARCH_MODEL', 'gpt-5.6-sol'),
+        'review_model' => env('APPRAISAL_AI_REVIEW_MODEL', 'gpt-5.6-sol'),
+        'reasoning_effort' => env('APPRAISAL_AI_REASONING_EFFORT', 'low'),
+        'max_output_tokens' => (int) env('APPRAISAL_AI_MAX_OUTPUT_TOKENS', 6000),
+        'prompt_version' => 'appraisal_market_agents_v1',
+        'openai' => [
+            'api_key' => env('OPENAI_API_KEY'),
+            'organization' => env('OPENAI_ORGANIZATION'),
+            'project' => env('OPENAI_PROJECT'),
+            'timeout_seconds' => (int) env('OPENAI_TIMEOUT_SECONDS', 45),
+            'connect_timeout_seconds' => (int) env('OPENAI_CONNECT_TIMEOUT_SECONDS', 10),
+        ],
+    ],
 ];

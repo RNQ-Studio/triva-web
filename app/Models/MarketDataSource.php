@@ -92,4 +92,10 @@ class MarketDataSource extends Model
     {
         return $this->hasMany(AppraisalMarketComparable::class);
     }
+
+    /** @return HasMany<AppraisalAiAgentRun, $this> */
+    public function aiAgentRuns(): HasMany
+    {
+        return $this->hasMany(AppraisalAiAgentRun::class);
+    }
 }

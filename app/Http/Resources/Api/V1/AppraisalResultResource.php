@@ -53,6 +53,7 @@ class AppraisalResultResource extends JsonResource
                 'code' => $code,
                 'label' => match ($code) {
                     'olx_approved_html' => 'OLX (akses berizin)',
+                    'openai_market_research' => 'Riset pasar terverifikasi AI',
                     'partner_feed' => 'Feed partner',
                     'approved_csv' => 'Dataset terkurasi',
                     'manual_appraiser' => 'Penilaian appraiser',

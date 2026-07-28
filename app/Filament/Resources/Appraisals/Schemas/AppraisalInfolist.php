@@ -149,6 +149,49 @@ class AppraisalInfolist
                                 ),
                         ]),
                 ]),
+            Section::make('Audit Agent AI')
+                ->description('Menampilkan jejak Agent Riset dan Agent Reviewer tanpa menampilkan prompt mentah atau credential.')
+                ->visible(fn (Appraisal $record): bool => $record->aiAgentRuns->isNotEmpty())
+                ->schema([
+                    RepeatableEntry::make('aiAgentRuns')
+                        ->hiddenLabel()
+                        ->columns(4)
+                        ->schema([
+                            TextEntry::make('phase')
+                                ->label('Agent')
+                                ->badge()
+                                ->formatStateUsing(fn (string $state): string => match ($state) {
+                                    'research' => 'Agent Riset',
+                                    'review' => 'Agent Reviewer',
+                                    default => $state,
+                                }),
+                            TextEntry::make('status')
+                                ->label('Status')
+                                ->badge(),
+                            TextEntry::make('model')
+                                ->label('Model'),
+                            TextEntry::make('prompt_version')
+                                ->label('Versi kebijakan'),
+                            TextEntry::make('candidate_count')
+                                ->label('Kandidat'),
+                            TextEntry::make('accepted_count')
+                                ->label('Diterima'),
+                            TextEntry::make('sources')
+                                ->label('Sumber web')
+                                ->formatStateUsing(fn (?array $state): int => count($state ?? [])),
+                            TextEntry::make('usage.total_tokens')
+                                ->label('Total token')
+                                ->numeric()
+                                ->placeholder('Tidak tersedia'),
+                            TextEntry::make('completed_at')
+                                ->label('Selesai')
+                                ->dateTime()
+                                ->placeholder('Masih berjalan'),
+                            TextEntry::make('error_code')
+                                ->label('Kode kegagalan')
+                                ->placeholder('Tidak ada'),
+                        ]),
+                ]),
         ]);
     }
 }

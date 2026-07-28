@@ -45,6 +45,7 @@ class AppraisalResource extends Resource
                 'vehicle',
                 'latestResult',
                 'latestMarketEstimate.comparables',
+                'aiAgentRuns' => fn ($query) => $query->latest(),
             ])
             ->withCount('currentPhotos');
     }

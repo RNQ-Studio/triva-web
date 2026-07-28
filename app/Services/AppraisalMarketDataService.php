@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Contracts\MarketDataProvider;
+use App\Exceptions\AiAgentException;
 use App\Exceptions\MarketDataProviderException;
 use App\Exceptions\NoEligibleMarketDataSourceException;
 use App\Jobs\ProcessAppraisalMarketData;
@@ -13,6 +14,7 @@ use App\Models\AppraisalStatusHistory;
 use App\Models\MarketDataSource;
 use App\Models\User;
 use App\Services\MarketData\OlxApprovedHtmlProvider;
+use App\Services\MarketData\OpenAiMarketResearchProvider;
 use App\Support\Enums\AppraisalConfidence;
 use App\Support\Enums\AppraisalMarketEstimateStatus;
 use App\Support\Enums\AppraisalStatus;
@@ -26,6 +28,7 @@ class AppraisalMarketDataService
 
     public function __construct(
         OlxApprovedHtmlProvider $olx,
+        private readonly OpenAiMarketResearchProvider $aiFallback,
         private readonly AppraisalValuationEngine $engine,
     ) {
         $this->providers = [$olx->code() => $olx];
@@ -45,10 +48,20 @@ class AppraisalMarketDataService
         }
 
         $sources = MarketDataSource::query()
+            ->whereIn('code', [
+                ...array_keys($this->providers),
+                $this->aiFallback->code(),
+            ])
+            ->get();
+        $primarySources = $sources
             ->whereIn('code', array_keys($this->providers))
-            ->get()
             ->filter(fn (MarketDataSource $source): bool => $source->isEligible());
-        if ($sources->isEmpty()) {
+        $fallbackSource = $sources
+            ->firstWhere('code', $this->aiFallback->code());
+        $fallbackIsEligible = (bool) config('appraisal.ai.enabled')
+            && $fallbackSource instanceof MarketDataSource
+            && $fallbackSource->isEligible();
+        if ($primarySources->isEmpty() && ! $fallbackIsEligible) {
             throw new NoEligibleMarketDataSourceException(
                 'Tidak ada provider market data berizin yang aktif.',
             );
@@ -57,7 +70,8 @@ class AppraisalMarketDataService
         $listings = [];
         $providerCodes = [];
         $lastException = null;
-        foreach ($sources as $source) {
+        $successfulProviderCount = 0;
+        foreach ($primarySources as $source) {
             $provider = $this->providers[$source->code] ?? null;
             if ($provider === null) {
                 continue;
@@ -68,6 +82,7 @@ class AppraisalMarketDataService
                 $fetched = $provider->fetch($appraisal, $source);
                 $listings = [...$listings, ...$fetched];
                 $providerCodes[] = $source->code;
+                $successfulProviderCount++;
                 $source->update([
                     'last_success_at' => now(),
                     'last_error_code' => null,
@@ -81,14 +96,50 @@ class AppraisalMarketDataService
             }
         }
 
-        if ($listings === [] && $lastException !== null) {
+        $valuation = $this->engine->estimate($appraisal, $listings);
+        $fallbackAudit = [
+            'attempted' => false,
+            'status' => $fallbackIsEligible ? 'not_needed' : 'not_eligible',
+            'error_code' => null,
+        ];
+        if (
+            $valuation['status'] !== AppraisalMarketEstimateStatus::Ready
+            && $fallbackIsEligible
+        ) {
+            $fallbackAudit['attempted'] = true;
+            $fallbackAudit['status'] = 'running';
+            $fallbackSource->update(['last_synced_at' => now()]);
+            try {
+                $fetched = $this->aiFallback->fetch($appraisal, $fallbackSource);
+                $listings = [...$listings, ...$fetched];
+                $providerCodes[] = $fallbackSource->code;
+                $successfulProviderCount++;
+                $fallbackAudit['status'] = 'completed';
+                $fallbackSource->update([
+                    'last_success_at' => now(),
+                    'last_error_code' => null,
+                ]);
+                $valuation = $this->engine->estimate($appraisal, $listings);
+            } catch (Throwable $exception) {
+                $lastException = $exception;
+                $fallbackAudit['status'] = 'failed';
+                $fallbackAudit['error_code'] = $exception instanceof AiAgentException
+                    ? $exception->errorCode
+                    : 'ai_fallback_failed';
+                $fallbackSource->update([
+                    'last_failure_at' => now(),
+                    'last_error_code' => $fallbackAudit['error_code'],
+                ]);
+            }
+        }
+
+        if ($successfulProviderCount === 0 && $lastException !== null) {
             throw new MarketDataProviderException(
                 'Seluruh provider market data gagal diakses.',
                 previous: $lastException,
             );
         }
-
-        $valuation = $this->engine->estimate($appraisal, $listings);
+        $valuation['calculation']['ai_fallback'] = $fallbackAudit;
 
         return DB::transaction(function () use (
             $appraisal,

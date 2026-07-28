@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Support\Enums\AppraisalDecision;
 use App\Support\Enums\AppraisalStatus;
 use Database\Factories\AppraisalFactory;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -37,6 +38,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $inspection_notes
  * @property Carbon|null $updated_at
  * @property-read Vehicle $vehicle
+ * @property-read Collection<int, AppraisalAiAgentRun> $aiAgentRuns
  * @property-read AppraisalMarketEstimate|null $latestMarketEstimate
  * @property-read AppraisalResult|null $latestResult
  */
@@ -139,6 +141,12 @@ class Appraisal extends Model
     public function marketEstimates(): HasMany
     {
         return $this->hasMany(AppraisalMarketEstimate::class);
+    }
+
+    /** @return HasMany<AppraisalAiAgentRun, $this> */
+    public function aiAgentRuns(): HasMany
+    {
+        return $this->hasMany(AppraisalAiAgentRun::class);
     }
 
     /** @return HasOne<AppraisalMarketEstimate, $this> */

@@ -232,6 +232,7 @@ class ViewAppraisal extends ViewRecord
                             'approved_csv' => 'CSV disetujui',
                             'partner_feed' => 'Feed partner',
                             'olx_approved_html' => 'OLX HTML (izin tertulis)',
+                            'openai_market_research' => 'Riset pasar terverifikasi AI',
                         ])
                         ->required(),
                     Hidden::make('external_reference_hash'),
