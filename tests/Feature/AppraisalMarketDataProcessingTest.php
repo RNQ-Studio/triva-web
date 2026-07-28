@@ -123,6 +123,29 @@ class AppraisalMarketDataProcessingTest extends TestCase
         ]);
     }
 
+    public function test_job_releases_an_insufficient_estimate_for_automatic_retry(): void
+    {
+        config(['appraisal.ai.enabled' => false]);
+        Http::fake([
+            'https://www.olx.co.id/*' => Http::response(
+                $this->olxCards(2),
+                200,
+                ['Content-Type' => 'text/html'],
+            ),
+        ]);
+        $appraisal = Appraisal::factory()->create([
+            'status' => AppraisalStatus::CollectingMarketData,
+            'submitted_at' => now(),
+        ]);
+        $job = (new ProcessAppraisalMarketData($appraisal->id, true))
+            ->withFakeQueueInteractions();
+
+        $job->handle(app(AppraisalMarketDataService::class));
+
+        $job->assertReleased(30);
+        self::assertSame(AppraisalStatus::Failed, $appraisal->refresh()->status);
+    }
+
     private function olxCards(int $count): string
     {
         return collect(range(1, $count))

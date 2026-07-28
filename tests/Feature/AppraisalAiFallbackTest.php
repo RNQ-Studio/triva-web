@@ -174,6 +174,51 @@ class AppraisalAiFallbackTest extends TestCase
         );
     }
 
+    public function test_automatic_retry_reuses_recent_accepted_ai_evidence(): void
+    {
+        $this->activateSource('olx_approved_html');
+        $this->activateSource('openai_market_research');
+        $firstCandidates = $this->candidates(4);
+        $secondCandidates = collect($this->candidates(4))
+            ->map(fn (array $candidate, int $index): array => [
+                ...$candidate,
+                'candidate_id' => 'retry-candidate-'.($index + 1),
+                'source_url' => 'https://www.olx.co.id/item/retry-avanza-'.($index + 1),
+                'source_title' => 'Toyota Avanza retry unit '.($index + 1),
+                'listing_price' => $candidate['listing_price'] + 5_000_000,
+            ])
+            ->all();
+        Http::fake([
+            'https://www.olx.co.id/*' => Http::sequence()
+                ->push('<html><body>Tidak ada hasil</body></html>', 200)
+                ->push('<html><body>Tidak ada hasil</body></html>', 200),
+            'https://api.openai.com/v1/responses' => Http::sequence()
+                ->push($this->researchResponse($firstCandidates), 200)
+                ->push($this->reviewResponse($firstCandidates), 200)
+                ->push($this->researchResponse($secondCandidates), 200)
+                ->push($this->reviewResponse($secondCandidates), 200),
+        ]);
+        $appraisal = $this->appraisal();
+
+        $first = app(AppraisalMarketDataService::class)->process($appraisal);
+        self::assertSame(AppraisalMarketEstimateStatus::Insufficient, $first->status);
+        self::assertSame(4, $first->comparable_count);
+
+        $second = app(AppraisalMarketDataService::class)->process(
+            $appraisal->refresh(),
+            true,
+        );
+
+        self::assertSame(AppraisalMarketEstimateStatus::Ready, $second->status);
+        self::assertSame(8, $second->comparable_count);
+        self::assertSame(AppraisalStatus::ResultReady, $appraisal->refresh()->status);
+        self::assertSame(
+            4,
+            data_get($second->calculation, 'ai_fallback.reused_comparable_count'),
+        );
+        $this->assertDatabaseCount('appraisal_results', 1);
+    }
+
     public function test_candidate_without_a_consulted_source_is_never_used_even_if_ai_accepts_it(): void
     {
         $this->activateSource('olx_approved_html');

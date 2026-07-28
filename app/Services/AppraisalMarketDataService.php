@@ -18,6 +18,7 @@ use App\Services\MarketData\OpenAiMarketResearchProvider;
 use App\Support\Enums\AppraisalConfidence;
 use App\Support\Enums\AppraisalMarketEstimateStatus;
 use App\Support\Enums\AppraisalStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -116,10 +117,12 @@ class AppraisalMarketDataService
             $fallbackSource->update(['last_synced_at' => now()]);
             try {
                 $fetched = $this->aiFallback->fetch($appraisal, $fallbackSource);
-                $listings = [...$listings, ...$fetched];
+                $reusable = $this->recentAcceptedAiComparables($appraisal);
+                $listings = [...$listings, ...$reusable, ...$fetched];
                 $providerCodes[] = $fallbackSource->code;
                 $successfulProviderCount++;
                 $fallbackAudit['status'] = 'completed';
+                $fallbackAudit['reused_comparable_count'] = count($reusable);
                 $fallbackSource->update([
                     'last_success_at' => now(),
                     'last_error_code' => null,
@@ -213,6 +216,53 @@ class AppraisalMarketDataService
         }
 
         return $estimate;
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function recentAcceptedAiComparables(Appraisal $appraisal): array
+    {
+        $comparables = AppraisalMarketComparable::query()
+            ->whereHas(
+                'estimate',
+                fn (Builder $query): Builder => $query
+                    ->where('appraisal_id', $appraisal->getKey()),
+            )
+            ->where('source_code', $this->aiFallback->code())
+            ->whereNull('exclusion_reason')
+            ->where(
+                'observed_at',
+                '>=',
+                now()->subDays(
+                    (int) config('appraisal.market_data.maximum_age_days'),
+                ),
+            )
+            ->latest('observed_at')
+            ->limit(50)
+            ->get();
+        $listings = [];
+        foreach ($comparables as $comparable) {
+            $listings[] = [
+                'market_data_source_id' => $comparable->market_data_source_id,
+                'source_code' => $comparable->source_code,
+                'external_reference_hash' => $comparable->external_reference_hash,
+                'make' => $comparable->make,
+                'model' => $comparable->model,
+                'variant' => $comparable->variant,
+                'year' => $comparable->year,
+                'transmission' => $comparable->transmission,
+                'fuel_type' => $comparable->fuel_type,
+                'mileage' => $comparable->mileage,
+                'listing_price' => $comparable->listing_price,
+                'city' => $comparable->city,
+                'observed_at' => $comparable->observed_at,
+                'metadata' => [
+                    ...($comparable->metadata ?? []),
+                    'reused_for_automatic_retry' => true,
+                ],
+            ];
+        }
+
+        return $listings;
     }
 
     public function requestRefresh(Appraisal $appraisal, User $actor): void
