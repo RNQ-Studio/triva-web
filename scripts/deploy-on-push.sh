@@ -33,6 +33,7 @@ trap finish EXIT
 cd "$APP_DIR"
 
 printf '[%s] Deployment requested\n' "$(date --iso-8601=seconds)"
+previous_commit="$(git rev-parse HEAD)"
 
 if [[ "$(git branch --show-current)" != 'main' ]]; then
     printf 'Refusing deployment: working tree is not on main.\n' >&2
@@ -62,9 +63,22 @@ git merge --ff-only origin/main
 
 "$COMPOSER_BIN" install --no-dev --optimize-autoloader --prefer-dist --no-interaction
 
-if [[ -f package-lock.json ]]; then
+if [[ -f package-lock.json ]] && ! git diff --quiet "$previous_commit" HEAD -- \
+    package.json \
+    package-lock.json \
+    vite.config.js \
+    resources/css \
+    resources/js \
+    resources/views; then
+    if ! command -v npm >/dev/null 2>&1; then
+        printf 'Frontend sources changed, but npm is unavailable.\n' >&2
+        exit 1
+    fi
+
     npm ci --include=dev --no-audit --no-fund
     npm run build
+else
+    printf '[%s] Frontend sources unchanged; skipping npm build.\n' "$(date --iso-8601=seconds)"
 fi
 
 "$PHP_BIN" artisan migrate --force --no-interaction
