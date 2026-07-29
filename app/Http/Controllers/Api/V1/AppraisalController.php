@@ -33,7 +33,11 @@ class AppraisalController extends Controller
         /** @var User $user */
         $user = $request->user();
         $items = $user->appraisals()
-            ->with(['vehicle', 'latestResult.comparables'])
+            ->with([
+                'vehicle',
+                'latestResult.comparables',
+                'latestResult.marketEstimate',
+            ])
             ->latest('updated_at')
             ->paginate(min($request->integer('per_page', 20), 100));
 

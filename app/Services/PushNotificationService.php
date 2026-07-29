@@ -25,15 +25,20 @@ class PushNotificationService
         $users = $recipients instanceof User ? collect([$recipients]) : $recipients;
 
         foreach ($users as $user) {
+            $payload = [
+                ...$data,
+                'type' => $type,
+            ];
             $notification = Notification::create([
                 'user_id' => $user->getKey(),
                 'title' => $title,
                 'body' => $body,
-                'data' => $data ?: null,
+                'data' => $payload,
                 'type' => $type,
             ]);
 
-            SendPushNotificationJob::dispatch($notification);
+            SendPushNotificationJob::dispatch($notification)
+                ->onQueue((string) config('appraisal.market_data.queue'));
         }
     }
 }

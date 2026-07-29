@@ -228,7 +228,7 @@ class NotificationTest extends TestCase
         $mockFcm = $this->mock(FcmDriverInterface::class);
         $mockFcm->shouldReceive('send')
             ->once()
-            ->with('fcm-token-valid', 'Title', 'Body', [])
+            ->with('fcm-token-valid', 'Title', 'Body', ['type' => 'system'])
             ->andReturn(true);
 
         $service = new PushNotificationService($mockFcm);

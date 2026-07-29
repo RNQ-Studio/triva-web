@@ -14,11 +14,10 @@ use App\Models\AppraisalStatusHistory;
 use App\Models\MarketDataSource;
 use App\Models\User;
 use App\Services\MarketData\OlxApprovedHtmlProvider;
-use App\Services\MarketData\OpenAiMarketResearchProvider;
+use App\Services\MarketData\OpenAiPriceDecisionProvider;
 use App\Support\Enums\AppraisalConfidence;
 use App\Support\Enums\AppraisalMarketEstimateStatus;
 use App\Support\Enums\AppraisalStatus;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -29,9 +28,10 @@ class AppraisalMarketDataService
 
     public function __construct(
         OlxApprovedHtmlProvider $olx,
-        private readonly OpenAiMarketResearchProvider $aiFallback,
+        private readonly OpenAiPriceDecisionProvider $aiFallback,
         private readonly AppraisalValuationEngine $engine,
         private readonly AppraisalAutomaticResultPublisher $resultPublisher,
+        private readonly PushNotificationService $notifications,
     ) {
         $this->providers = [$olx->code() => $olx];
     }
@@ -75,8 +75,7 @@ class AppraisalMarketDataService
 
         $listings = [];
         $providerCodes = [];
-        $lastException = null;
-        $successfulProviderCount = 0;
+        $retryableException = null;
         foreach ($primarySources as $source) {
             $provider = $this->providers[$source->code] ?? null;
             if ($provider === null) {
@@ -88,13 +87,12 @@ class AppraisalMarketDataService
                 $fetched = $provider->fetch($appraisal, $source);
                 $listings = [...$listings, ...$fetched];
                 $providerCodes[] = $source->code;
-                $successfulProviderCount++;
                 $source->update([
                     'last_success_at' => now(),
                     'last_error_code' => null,
                 ]);
             } catch (Throwable $exception) {
-                $lastException = $exception;
+                $retryableException = $exception;
                 $source->update([
                     'last_failure_at' => now(),
                     'last_error_code' => 'provider_fetch_failed',
@@ -116,20 +114,26 @@ class AppraisalMarketDataService
             $fallbackAudit['status'] = 'running';
             $fallbackSource->update(['last_synced_at' => now()]);
             try {
-                $fetched = $this->aiFallback->fetch($appraisal, $fallbackSource);
-                $reusable = $this->recentAcceptedAiComparables($appraisal);
-                $listings = [...$listings, ...$reusable, ...$fetched];
+                $decision = $this->aiFallback->decide(
+                    $appraisal,
+                    $fallbackSource,
+                    collect($valuation['comparables'])
+                        ->whereNull('exclusion_reason')
+                        ->values()
+                        ->all(),
+                );
                 $providerCodes[] = $fallbackSource->code;
-                $successfulProviderCount++;
                 $fallbackAudit['status'] = 'completed';
-                $fallbackAudit['reused_comparable_count'] = count($reusable);
                 $fallbackSource->update([
                     'last_success_at' => now(),
                     'last_error_code' => null,
                 ]);
-                $valuation = $this->engine->estimate($appraisal, $listings);
+                $valuation = $this->engine->estimateFromPriceDecision(
+                    $appraisal,
+                    $decision,
+                    $valuation,
+                );
             } catch (Throwable $exception) {
-                $lastException = $exception;
                 $fallbackAudit['status'] = 'failed';
                 $fallbackAudit['error_code'] = $exception instanceof AiAgentException
                     ? $exception->errorCode
@@ -138,13 +142,19 @@ class AppraisalMarketDataService
                     'last_failure_at' => now(),
                     'last_error_code' => $fallbackAudit['error_code'],
                 ]);
+                if ($this->isRetryable($exception)) {
+                    $retryableException = $exception;
+                }
             }
         }
 
-        if ($successfulProviderCount === 0 && $lastException !== null) {
+        if (
+            $valuation['status'] !== AppraisalMarketEstimateStatus::Ready
+            && $retryableException !== null
+        ) {
             throw new MarketDataProviderException(
-                'Seluruh provider market data gagal diakses.',
-                previous: $lastException,
+                'Provider appraisal otomatis gagal sementara.',
+                previous: $retryableException,
             );
         }
         $valuation['calculation']['ai_fallback'] = $fallbackAudit;
@@ -213,56 +223,11 @@ class AppraisalMarketDataService
 
         if ($estimate->status === AppraisalMarketEstimateStatus::Ready) {
             $this->resultPublisher->publish($appraisal->refresh(), $estimate);
+        } else {
+            $this->notifyFailure($appraisal->refresh());
         }
 
         return $estimate;
-    }
-
-    /** @return list<array<string, mixed>> */
-    private function recentAcceptedAiComparables(Appraisal $appraisal): array
-    {
-        $comparables = AppraisalMarketComparable::query()
-            ->whereHas(
-                'estimate',
-                fn (Builder $query): Builder => $query
-                    ->where('appraisal_id', $appraisal->getKey()),
-            )
-            ->where('source_code', $this->aiFallback->code())
-            ->whereNull('exclusion_reason')
-            ->where(
-                'observed_at',
-                '>=',
-                now()->subDays(
-                    (int) config('appraisal.market_data.maximum_age_days'),
-                ),
-            )
-            ->latest('observed_at')
-            ->limit(50)
-            ->get();
-        $listings = [];
-        foreach ($comparables as $comparable) {
-            $listings[] = [
-                'market_data_source_id' => $comparable->market_data_source_id,
-                'source_code' => $comparable->source_code,
-                'external_reference_hash' => $comparable->external_reference_hash,
-                'make' => $comparable->make,
-                'model' => $comparable->model,
-                'variant' => $comparable->variant,
-                'year' => $comparable->year,
-                'transmission' => $comparable->transmission,
-                'fuel_type' => $comparable->fuel_type,
-                'mileage' => $comparable->mileage,
-                'listing_price' => $comparable->listing_price,
-                'city' => $comparable->city,
-                'observed_at' => $comparable->observed_at,
-                'metadata' => [
-                    ...($comparable->metadata ?? []),
-                    'reused_for_automatic_retry' => true,
-                ],
-            ];
-        }
-
-        return $listings;
     }
 
     public function requestRefresh(Appraisal $appraisal, User $actor): void
@@ -307,7 +272,7 @@ class AppraisalMarketDataService
         string $failureCode,
         string $failureMessage,
     ): AppraisalMarketEstimate {
-        return DB::transaction(function () use (
+        $estimate = DB::transaction(function () use (
             $appraisal,
             $failureCode,
             $failureMessage,
@@ -349,6 +314,39 @@ class AppraisalMarketDataService
 
             return $estimate;
         });
+
+        $this->notifyFailure($appraisal->refresh());
+
+        return $estimate;
+    }
+
+    private function isRetryable(Throwable $exception): bool
+    {
+        if (! $exception instanceof AiAgentException) {
+            return true;
+        }
+
+        return in_array($exception->errorCode, [
+            'openai_connection_failed',
+            'openai_rate_limited',
+            'openai_server_error',
+            'openai_incomplete_response',
+            'ai_rate_limited',
+        ], true);
+    }
+
+    private function notifyFailure(Appraisal $appraisal): void
+    {
+        $this->notifications->send(
+            $appraisal->user,
+            'Appraisal belum dapat diselesaikan',
+            'Pemrosesan '.$appraisal->reference_no.' selesai, tetapi keputusan harga belum tersedia. Data Anda tetap tersimpan.',
+            [
+                'appraisal_id' => $appraisal->getKey(),
+                'route' => '/appraisals/'.$appraisal->getKey(),
+            ],
+            'appraisal_processing_failed',
+        );
     }
 
     private function history(

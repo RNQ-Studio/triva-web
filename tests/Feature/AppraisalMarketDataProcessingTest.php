@@ -92,7 +92,11 @@ class AppraisalMarketDataProcessingTest extends TestCase
     public function test_job_marks_automatic_processing_failed_when_no_provider_is_active(): void
     {
         MarketDataSource::query()
-            ->whereIn('code', ['olx_approved_html', 'openai_market_research'])
+            ->whereIn('code', [
+                'olx_approved_html',
+                'openai_market_research',
+                'openai_price_decision',
+            ])
             ->get()
             ->each(fn (MarketDataSource $source) => $source->update([
                 'status' => MarketDataSourceStatus::Draft,
@@ -123,7 +127,7 @@ class AppraisalMarketDataProcessingTest extends TestCase
         ]);
     }
 
-    public function test_job_releases_an_insufficient_estimate_for_automatic_retry(): void
+    public function test_job_does_not_retry_a_permanent_insufficient_estimate(): void
     {
         config(['appraisal.ai.enabled' => false]);
         Http::fake([
@@ -142,8 +146,12 @@ class AppraisalMarketDataProcessingTest extends TestCase
 
         $job->handle(app(AppraisalMarketDataService::class));
 
-        $job->assertReleased(30);
+        $job->assertNotReleased();
         self::assertSame(AppraisalStatus::Failed, $appraisal->refresh()->status);
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $appraisal->user_id,
+            'type' => 'appraisal_processing_failed',
+        ]);
     }
 
     private function olxCards(int $count): string

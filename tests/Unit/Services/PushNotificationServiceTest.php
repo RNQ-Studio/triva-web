@@ -52,16 +52,17 @@ class PushNotificationServiceTest extends TestCase
         $body = 'Hello Body';
         $data = ['custom_key' => 'custom_val'];
         $type = 'marketing';
+        $expectedData = [...$data, 'type' => $type];
 
         // Expect both to succeed
         $this->fcmMock->shouldReceive('send')
             ->once()
-            ->with('token-android-1', $title, $body, $data)
+            ->with('token-android-1', $title, $body, $expectedData)
             ->andReturn(true);
 
         $this->fcmMock->shouldReceive('send')
             ->once()
-            ->with('token-ios-1', $title, $body, $data)
+            ->with('token-ios-1', $title, $body, $expectedData)
             ->andReturn(true);
 
         // Act
@@ -78,7 +79,7 @@ class PushNotificationServiceTest extends TestCase
         $notification = Notification::where('user_id', $this->user->id)->first();
         $this->assertNotNull($notification->sent_at);
         $this->assertNull($notification->failed_at);
-        $this->assertSame($data, $notification->data);
+        $this->assertEquals($expectedData, $notification->data);
 
         // Assert tokens are NOT cleared
         $this->assertSame('token-android-1', $device1->refresh()->push_token);
@@ -99,7 +100,7 @@ class PushNotificationServiceTest extends TestCase
         // FCM returns false for invalid token
         $this->fcmMock->shouldReceive('send')
             ->once()
-            ->with('token-invalid', $title, $body, [])
+            ->with('token-invalid', $title, $body, ['type' => 'system'])
             ->andReturn(false);
 
         // Act
@@ -131,12 +132,12 @@ class PushNotificationServiceTest extends TestCase
 
         $this->fcmMock->shouldReceive('send')
             ->once()
-            ->with('token-success', $title, $body, [])
+            ->with('token-success', $title, $body, ['type' => 'system'])
             ->andReturn(true);
 
         $this->fcmMock->shouldReceive('send')
             ->once()
-            ->with('token-fail', $title, $body, [])
+            ->with('token-fail', $title, $body, ['type' => 'system'])
             ->andReturn(false);
 
         // Act
@@ -191,12 +192,12 @@ class PushNotificationServiceTest extends TestCase
 
         $this->fcmMock->shouldReceive('send')
             ->once()
-            ->with('token-user1', $title, $body, [])
+            ->with('token-user1', $title, $body, ['type' => 'system'])
             ->andReturn(true);
 
         $this->fcmMock->shouldReceive('send')
             ->once()
-            ->with('token-user2', $title, $body, [])
+            ->with('token-user2', $title, $body, ['type' => 'system'])
             ->andReturn(true);
 
         // Act with Eloquent collection

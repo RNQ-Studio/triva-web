@@ -34,11 +34,15 @@ return [
             env('APPRAISAL_AI_FALLBACK_ENABLED', true),
             FILTER_VALIDATE_BOOL,
         ),
+        'price_decision_model' => env(
+            'APPRAISAL_AI_PRICE_DECISION_MODEL',
+            env('APPRAISAL_AI_RESEARCH_MODEL', 'gpt-5.6-sol'),
+        ),
         'research_model' => env('APPRAISAL_AI_RESEARCH_MODEL', 'gpt-5.6-sol'),
         'review_model' => env('APPRAISAL_AI_REVIEW_MODEL', 'gpt-5.6-sol'),
         'reasoning_effort' => env('APPRAISAL_AI_REASONING_EFFORT', 'low'),
         'max_output_tokens' => (int) env('APPRAISAL_AI_MAX_OUTPUT_TOKENS', 6000),
-        'prompt_version' => 'appraisal_market_agents_v3',
+        'prompt_version' => 'appraisal_price_decision_v2',
         'openai' => [
             'api_key' => env('OPENAI_API_KEY'),
             'organization' => env('OPENAI_ORGANIZATION'),

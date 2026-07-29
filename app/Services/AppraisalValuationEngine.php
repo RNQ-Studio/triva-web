@@ -157,6 +157,108 @@ class AppraisalValuationEngine
         ];
     }
 
+    /**
+     * Converts a validated OpenAI market-price decision into the same immutable
+     * valuation contract used by the comparable engine. Trade-in deductions
+     * remain deterministic and are never delegated to the model.
+     *
+     * @param  array{
+     *     market_low: int,
+     *     market_mid: int,
+     *     market_high: int,
+     *     confidence: string,
+     *     rationale: string,
+     *     assumptions: list<string>,
+     *     model: string,
+     *     response_id: string|null,
+     *     decided_at: Carbon
+     * }  $decision
+     * @param  array{
+     *     status: AppraisalMarketEstimateStatus,
+     *     market_low: int|null,
+     *     market_mid: int|null,
+     *     market_high: int|null,
+     *     trade_in_low: int|null,
+     *     trade_in_high: int|null,
+     *     confidence: AppraisalConfidence,
+     *     comparable_count: int,
+     *     data_as_of: Carbon|null,
+     *     adjustments: list<array<string, mixed>>,
+     *     calculation: array<string, mixed>,
+     *     comparables: list<array<string, mixed>>
+     * }  $evidence
+     * @return array{
+     *     status: AppraisalMarketEstimateStatus,
+     *     market_low: int,
+     *     market_mid: int,
+     *     market_high: int,
+     *     trade_in_low: int,
+     *     trade_in_high: int,
+     *     confidence: AppraisalConfidence,
+     *     comparable_count: int,
+     *     data_as_of: Carbon,
+     *     adjustments: list<array<string, mixed>>,
+     *     calculation: array<string, mixed>,
+     *     comparables: list<array<string, mixed>>
+     * }
+     */
+    public function estimateFromPriceDecision(
+        Appraisal $appraisal,
+        array $decision,
+        array $evidence,
+    ): array {
+        $marketLow = $this->roundPrice($decision['market_low']);
+        $marketMid = $this->roundPrice($decision['market_mid']);
+        $marketHigh = $this->roundPrice($decision['market_high']);
+        $marketMid = max($marketLow, min($marketMid, $marketHigh));
+        $adjustments = $this->adjustments($appraisal);
+        $deduction = collect($adjustments)->sum(
+            fn (array $adjustment): float => (float) $adjustment['percentage'],
+        );
+        $tradeInLow = $this->roundPrice((int) round(
+            $marketLow * (1 - ($deduction / 100)),
+        ));
+        $tradeInHigh = $this->roundPrice((int) round(
+            $marketMid * (1 - (max(3.0, $deduction - 1.5) / 100)),
+        ));
+        $tradeInHigh = min($tradeInHigh, $marketMid);
+        $tradeInLow = min($tradeInLow, $tradeInHigh);
+        $confidence = AppraisalConfidence::from($decision['confidence']);
+        if ($evidence['comparable_count'] === 0) {
+            $confidence = AppraisalConfidence::Low;
+        }
+
+        return [
+            'status' => AppraisalMarketEstimateStatus::Ready,
+            'market_low' => $marketLow,
+            'market_mid' => $marketMid,
+            'market_high' => $marketHigh,
+            'trade_in_low' => $tradeInLow,
+            'trade_in_high' => $tradeInHigh,
+            'confidence' => $confidence,
+            'comparable_count' => $evidence['comparable_count'],
+            'data_as_of' => $decision['decided_at'],
+            'adjustments' => $adjustments,
+            'calculation' => [
+                'algorithm' => 'openai_price_decision_with_deterministic_trade_in_v1',
+                'fallback_reason' => 'insufficient_olx_comparables',
+                'olx_valid_comparable_count' => $evidence['comparable_count'],
+                'minimum_comparables' => (int) config(
+                    'appraisal.market_data.minimum_comparables',
+                ),
+                'ai_price_decision' => [
+                    'model' => $decision['model'],
+                    'response_id' => $decision['response_id'],
+                    'confidence' => $confidence->value,
+                    'rationale' => $decision['rationale'],
+                    'assumptions' => $decision['assumptions'],
+                    'decided_at' => $decision['decided_at']->toIso8601String(),
+                ],
+            ],
+            'comparables' => $evidence['comparables'],
+        ];
+    }
+
     /** @param array<string, mixed> $listing */
     private function similarity(
         Appraisal $appraisal,

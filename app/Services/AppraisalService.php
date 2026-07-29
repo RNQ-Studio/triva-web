@@ -313,6 +313,7 @@ class AppraisalService
                 ->where('user_visible', true)
                 ->oldest('created_at'),
             'latestResult.comparables',
+            'latestResult.marketEstimate',
         ]);
     }
 

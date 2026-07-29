@@ -46,22 +46,41 @@ class AppraisalResultResource extends JsonResource
             return [];
         }
 
-        return $this->comparables
+        $summaries = $this->comparables
             ->where('is_outlier', false)
             ->groupBy('source_code')
             ->map(fn ($comparables, string $code): array => [
                 'code' => $code,
-                'label' => match ($code) {
-                    'olx_approved_html' => 'OLX (akses berizin)',
-                    'openai_market_research' => 'Riset pasar terverifikasi AI',
-                    'partner_feed' => 'Feed partner',
-                    'approved_csv' => 'Dataset terkurasi',
-                    'manual_appraiser' => 'Penilaian appraiser',
-                    default => 'Sumber terverifikasi',
-                },
+                'label' => $this->sourceLabel($code),
                 'comparable_count' => $comparables->count(),
-            ])
-            ->values()
-            ->all();
+            ]);
+
+        if ($this->relationLoaded('marketEstimate') && $this->marketEstimate !== null) {
+            foreach ($this->marketEstimate->provider_codes ?? [] as $code) {
+                if ($code !== 'openai_price_decision' || $summaries->has($code)) {
+                    continue;
+                }
+                $summaries->put($code, [
+                    'code' => $code,
+                    'label' => $this->sourceLabel($code),
+                    'comparable_count' => 0,
+                ]);
+            }
+        }
+
+        return $summaries->values()->all();
+    }
+
+    private function sourceLabel(string $code): string
+    {
+        return match ($code) {
+            'olx_approved_html' => 'OLX (akses berizin)',
+            'openai_market_research' => 'Riset pasar terverifikasi AI',
+            'openai_price_decision' => 'Keputusan harga OpenAI',
+            'partner_feed' => 'Feed partner',
+            'approved_csv' => 'Dataset terkurasi',
+            'manual_appraiser' => 'Penilaian appraiser',
+            default => 'Sumber terverifikasi',
+        };
     }
 }
