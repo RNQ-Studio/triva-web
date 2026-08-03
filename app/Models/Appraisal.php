@@ -18,6 +18,8 @@ use Illuminate\Support\Carbon;
  * @property string $id
  * @property int $user_id
  * @property string $vehicle_id
+ * @property string|null $creation_idempotency_key
+ * @property string|null $creation_idempotency_fingerprint
  * @property string $reference_no
  * @property AppraisalStatus $status
  * @property string|null $idempotency_key
@@ -50,6 +52,8 @@ class Appraisal extends Model
     protected $fillable = [
         'reference_no',
         'status',
+        'creation_idempotency_key',
+        'creation_idempotency_fingerprint',
         'idempotency_key',
         'tax_status',
         'flood_history',

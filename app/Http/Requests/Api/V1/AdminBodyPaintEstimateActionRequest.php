@@ -6,6 +6,7 @@ use App\Models\BodyPaintEstimate;
 use App\Support\Enums\BodyPaintAdminAction;
 use App\Support\Enums\BodyPaintSeverity;
 use App\Support\Enums\BodyPaintWorkType;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -53,8 +54,12 @@ class AdminBodyPaintEstimateActionRequest extends FormRequest
                 'integer',
                 'distinct',
                 Rule::exists('body_paint_damage_photos', 'id')->where(
-                    'estimate_id',
-                    $this->route('estimate')?->getKey(),
+                    fn (Builder $query): Builder => $query
+                        ->where(
+                            'estimate_id',
+                            $this->route('estimate')?->getKey(),
+                        )
+                        ->where('review_status', '!=', 'rejected'),
                 ),
             ],
             'items' => [

@@ -81,6 +81,74 @@ class AppraisalApiTest extends TestCase
         $this->putJson('/api/v1/vehicles/'.$vehicleId, $this->vehiclePayload())->assertForbidden();
     }
 
+    public function test_vehicle_creation_replays_a_lost_response_without_duplicates(): void
+    {
+        Passport::actingAs($this->customer);
+        $key = (string) Str::uuid();
+
+        $created = $this->withHeader('Idempotency-Key', $key)
+            ->postJson('/api/v1/vehicles', $this->vehiclePayload())
+            ->assertCreated()
+            ->assertJsonPath('meta.idempotent_replay', false);
+
+        $replayed = $this->withHeader('Idempotency-Key', $key)
+            ->postJson('/api/v1/vehicles', $this->vehiclePayload())
+            ->assertOk()
+            ->assertJsonPath('meta.idempotent_replay', true)
+            ->assertJsonPath('data.id', $created->json('data.id'));
+
+        self::assertSame($created->json('data.id'), $replayed->json('data.id'));
+        $this->assertDatabaseCount('vehicles', 1);
+
+        $this->withHeader('Idempotency-Key', $key)
+            ->postJson('/api/v1/vehicles', [
+                ...$this->vehiclePayload(),
+                'license_plate' => 'L 9999 NEW',
+            ])
+            ->assertConflict()
+            ->assertJsonPath('code', 'VEHICLE_IDEMPOTENCY_CONFLICT');
+        $this->assertDatabaseCount('vehicles', 1);
+    }
+
+    public function test_appraisal_creation_replays_a_lost_response_without_duplicates(): void
+    {
+        Passport::actingAs($this->customer);
+        $firstVehicle = Vehicle::factory()->create([
+            'user_id' => $this->customer->getKey(),
+        ]);
+        $secondVehicle = Vehicle::factory()->create([
+            'user_id' => $this->customer->getKey(),
+        ]);
+        $key = (string) Str::uuid();
+
+        $created = $this->withHeader('Idempotency-Key', $key)
+            ->postJson('/api/v1/appraisals', [
+                'vehicle_id' => $firstVehicle->getKey(),
+            ])
+            ->assertCreated()
+            ->assertJsonPath('meta.idempotent_replay', false);
+
+        $this->withHeader('Idempotency-Key', $key)
+            ->postJson('/api/v1/appraisals', [
+                'vehicle_id' => $firstVehicle->getKey(),
+            ])
+            ->assertOk()
+            ->assertJsonPath('meta.idempotent_replay', true)
+            ->assertJsonPath('data.id', $created->json('data.id'));
+
+        $this->assertDatabaseCount('appraisals', 1);
+        $this->assertDatabaseCount('appraisal_status_histories', 1);
+
+        $this->withHeader('Idempotency-Key', $key)
+            ->postJson('/api/v1/appraisals', [
+                'vehicle_id' => $secondVehicle->getKey(),
+            ])
+            ->assertConflict()
+            ->assertJsonPath('code', 'APPRAISAL_IDEMPOTENCY_CONFLICT');
+        $this->assertDatabaseCount('appraisals', 1);
+        $this->assertDatabaseCount('appraisal_status_histories', 1);
+    }
+
     public function test_vehicle_list_is_stable_across_equal_timestamp_pages(): void
     {
         $ids = [

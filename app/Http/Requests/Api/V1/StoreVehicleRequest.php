@@ -12,6 +12,13 @@ use Illuminate\Validation\Validator;
 
 class StoreVehicleRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'idempotency_key' => $this->header('Idempotency-Key'),
+        ]);
+    }
+
     public function authorize(): bool
     {
         return $this->user() !== null;
@@ -20,6 +27,9 @@ class StoreVehicleRequest extends FormRequest
     public function rules(): array
     {
         return [
+            // Optional for backward compatibility with released API v1 clients.
+            // Current clients always send it so a lost response can be replayed.
+            'idempotency_key' => ['nullable', 'uuid'],
             'make_id' => [
                 'nullable',
                 'required_with:model_id',

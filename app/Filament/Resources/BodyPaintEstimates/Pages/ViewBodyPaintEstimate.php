@@ -9,6 +9,7 @@ use App\Models\BodyPaintEstimateItem;
 use App\Models\User;
 use App\Services\BodyPaintEstimatorService;
 use App\Support\Enums\BodyPaintAdminAction;
+use App\Support\Enums\BodyPaintPhotoReviewStatus;
 use App\Support\Enums\BodyPaintSeverity;
 use App\Support\Enums\BodyPaintWorkType;
 use Filament\Actions\Action;
@@ -79,14 +80,19 @@ class ViewBodyPaintEstimate extends ViewRecord
                 ->form(fn (BodyPaintEstimate $record): array => [
                     Select::make('rejected_photo_ids')
                         ->label('Foto yang harus diganti')
-                        ->options($record->photos->mapWithKeys(
-                            fn ($photo): array => [
-                                $photo->getKey() => implode(' - ', array_filter([
-                                    $photo->asset->original_filename,
-                                    $photo->damage?->panel_code,
-                                ])),
-                            ],
-                        ))
+                        ->options($record->photos
+                            ->filter(
+                                fn ($photo): bool => $photo->review_status
+                                    !== BodyPaintPhotoReviewStatus::Rejected,
+                            )
+                            ->mapWithKeys(
+                                fn ($photo): array => [
+                                    $photo->getKey() => implode(' - ', array_filter([
+                                        $photo->asset->original_filename,
+                                        $photo->damage?->panel_code,
+                                    ])),
+                                ],
+                            ))
                         ->multiple()
                         ->required()
                         ->minItems(1),

@@ -177,6 +177,24 @@ class BodyPaintEstimateService
                 );
                 $kept[] = $damage->getKey();
             }
+            if (
+                $locked->status
+                    === BodyPaintEstimateStatus::NeedsCustomerAction
+                && $locked->photos()
+                    ->where(
+                        'review_status',
+                        BodyPaintPhotoReviewStatus::Rejected,
+                    )
+                    ->whereNotNull('damage_id')
+                    ->whereNotIn('damage_id', $kept)
+                    ->exists()
+            ) {
+                throw ValidationException::withMessages([
+                    'damages' => [
+                        'Panel dengan riwayat foto ditolak tidak dapat dihapus saat koreksi.',
+                    ],
+                ]);
+            }
             $locked->damages()->whereNotIn('id', $kept)->delete();
             $locked->items()->delete();
             $locked->forceFill([
@@ -208,35 +226,111 @@ class BodyPaintEstimateService
         DB::transaction(function () use ($estimate, $user, $photos): void {
             $locked = BodyPaintEstimate::query()
                 ->whereKey($estimate->getKey())
+                ->where('user_id', $user->getKey())
                 ->lockForUpdate()
                 ->firstOrFail();
             if (! $locked->status->isCustomerEditable()) {
                 throw $this->stateConflict();
             }
-            $currentCount = $locked->photos()->count();
-            $newAssetIds = collect($photos)->pluck('asset_id')->unique();
-            $existingCount = BodyPaintDamagePhoto::query()
-                ->where('estimate_id', $locked->getKey())
-                ->whereIn('asset_id', $newAssetIds)
-                ->count();
-            if (
-                $currentCount + $newAssetIds->count() - $existingCount
-                > (int) config('body_paint.maximum_photos', 10)
-            ) {
+
+            $newAssetIds = collect($photos)
+                ->pluck('asset_id')
+                ->unique()
+                ->values();
+            $assets = Asset::query()
+                ->whereKey($newAssetIds->all())
+                ->where('user_id', $user->getKey())
+                ->where('category', 'body-paint-estimate-photo')
+                ->where('status', 'active')
+                ->where('is_protected', true)
+                ->lockForUpdate()
+                ->get()
+                ->keyBy(fn (Asset $asset): string => $asset->getKey());
+            if ($assets->count() !== $newAssetIds->count()) {
                 throw ValidationException::withMessages([
-                    'photos' => ['Jumlah foto maksimum adalah 10.'],
+                    'photos' => [
+                        'Satu atau lebih unggahan foto tidak valid atau bukan milik Anda.',
+                    ],
                 ]);
             }
 
+            $damageIds = collect($photos)
+                ->pluck('damage_id')
+                ->filter()
+                ->unique()
+                ->values();
+            $ownedDamageIds = BodyPaintEstimateDamage::query()
+                ->where('estimate_id', $locked->getKey())
+                ->whereKey($damageIds->all())
+                ->lockForUpdate()
+                ->pluck('id')
+                ->all();
+            if (count($ownedDamageIds) !== $damageIds->count()) {
+                throw ValidationException::withMessages([
+                    'photos' => [
+                        'Satu atau lebih panel foto tidak termasuk dalam estimasi ini.',
+                    ],
+                ]);
+            }
+
+            $existingPhotos = BodyPaintDamagePhoto::query()
+                ->whereIn('asset_id', $newAssetIds->all())
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('asset_id');
+            foreach ($existingPhotos as $existing) {
+                if ($existing->estimate_id !== $locked->getKey()) {
+                    throw ValidationException::withMessages([
+                        'photos' => ['Satu atau lebih foto sudah digunakan.'],
+                    ]);
+                }
+                if (
+                    $existing->review_status
+                    === BodyPaintPhotoReviewStatus::Rejected
+                ) {
+                    throw ValidationException::withMessages([
+                        'photos' => [
+                            'Foto yang sudah ditolak harus diganti dengan unggahan baru.',
+                        ],
+                    ]);
+                }
+            }
+
+            $currentCount = $locked->photos()
+                ->where(
+                    'review_status',
+                    '!=',
+                    BodyPaintPhotoReviewStatus::Rejected,
+                )
+                ->count();
+            $newCount = $newAssetIds
+                ->reject(fn (string $assetId): bool => $existingPhotos->has($assetId))
+                ->count();
+            $maximumPhotos = (int) config('body_paint.maximum_photos', 10);
+            if (
+                $currentCount + $newCount
+                > $maximumPhotos
+            ) {
+                throw ValidationException::withMessages([
+                    'photos' => [
+                        "Jumlah foto aktif maksimum adalah {$maximumPhotos}.",
+                    ],
+                ]);
+            }
+
+            $replacementAudit = [];
             foreach ($photos as $data) {
-                $existing = BodyPaintDamagePhoto::query()
-                    ->where('asset_id', $data['asset_id'])
-                    ->lockForUpdate()
-                    ->first();
+                /** @var BodyPaintDamagePhoto|null $existing */
+                $existing = $existingPhotos->get($data['asset_id']);
                 if ($existing !== null) {
-                    if ($existing->estimate_id !== $locked->getKey()) {
+                    if (
+                        $locked->status
+                        === BodyPaintEstimateStatus::NeedsCustomerAction
+                    ) {
                         throw ValidationException::withMessages([
-                            'photos' => ['Satu atau lebih foto sudah digunakan.'],
+                            'photos' => [
+                                'Perbaikan foto harus menggunakan unggahan baru.',
+                            ],
                         ]);
                     }
                     $existing->forceFill([
@@ -252,24 +346,43 @@ class BodyPaintEstimateService
                     continue;
                 }
 
-                $asset = Asset::query()
-                    ->whereKey($data['asset_id'])
-                    ->where('user_id', $user->getKey())
-                    ->where('category', 'body-paint-estimate-photo')
-                    ->where('status', 'active')
-                    ->where('is_protected', true)
-                    ->lockForUpdate()
-                    ->firstOrFail();
+                $rejectedPhoto = null;
+                if (
+                    $locked->status
+                    === BodyPaintEstimateStatus::NeedsCustomerAction
+                ) {
+                    $rejectedPhoto = $this->rejectedPhotoForReplacement(
+                        $locked,
+                        $data,
+                    );
+                    if ($rejectedPhoto === null) {
+                        throw ValidationException::withMessages([
+                            'photos' => [
+                                'Unggahan baru harus menggantikan foto yang diminta estimator.',
+                            ],
+                        ]);
+                    }
+                }
+
                 $photo = new BodyPaintDamagePhoto([
-                    'asset_id' => $asset->getKey(),
+                    'asset_id' => $data['asset_id'],
                     'photo_type' => $data['photo_type'],
                     'review_status' => BodyPaintPhotoReviewStatus::Pending,
                 ]);
                 $photo->estimate()->associate($locked);
+                if ($rejectedPhoto !== null) {
+                    $photo->replacedPhoto()->associate($rejectedPhoto);
+                }
                 if (isset($data['damage_id'])) {
                     $photo->damage()->associate($data['damage_id']);
                 }
                 $photo->save();
+                if ($rejectedPhoto !== null) {
+                    $replacementAudit[] = [
+                        'rejected_photo_id' => $rejectedPhoto->getKey(),
+                        'replacement_photo_id' => $photo->getKey(),
+                    ];
+                }
             }
             $this->history(
                 $locked,
@@ -278,6 +391,9 @@ class BodyPaintEstimateService
                 'Foto kerusakan diperbarui',
                 'Foto akan diperiksa setelah permintaan dikirim.',
                 'customer',
+                $replacementAudit === []
+                    ? null
+                    : ['replacements' => $replacementAudit],
             );
         }, 3);
 
@@ -639,6 +755,23 @@ class BodyPaintEstimateService
 
     private function assertReadyToSubmit(BodyPaintEstimate $estimate): void
     {
+        if (
+            $estimate->status === BodyPaintEstimateStatus::NeedsCustomerAction
+            && $estimate->photos()
+                ->where(
+                    'review_status',
+                    BodyPaintPhotoReviewStatus::Rejected,
+                )
+                ->whereDoesntHave('replacement')
+                ->exists()
+        ) {
+            throw ValidationException::withMessages([
+                'photos' => [
+                    'Ganti seluruh foto yang ditolak sebelum mengirim ulang.',
+                ],
+            ]);
+        }
+
         if ($estimate->damages->isEmpty()) {
             throw ValidationException::withMessages([
                 'damages' => ['Tambahkan minimal satu panel yang rusak.'],
@@ -674,6 +807,35 @@ class BodyPaintEstimateService
                 'photos' => ['Tambahkan minimal satu foto konteks kendaraan.'],
             ]);
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function rejectedPhotoForReplacement(
+        BodyPaintEstimate $estimate,
+        array $data,
+    ): ?BodyPaintDamagePhoto {
+        return BodyPaintDamagePhoto::query()
+            ->where('estimate_id', $estimate->getKey())
+            ->where(
+                'review_status',
+                BodyPaintPhotoReviewStatus::Rejected,
+            )
+            ->where('photo_type', $data['photo_type'])
+            ->when(
+                isset($data['damage_id']),
+                fn (Builder $query): Builder => $query->where(
+                    'damage_id',
+                    $data['damage_id'],
+                ),
+                fn (Builder $query): Builder => $query->whereNull('damage_id'),
+            )
+            ->whereDoesntHave('replacement')
+            ->oldest('reviewed_at')
+            ->oldest('id')
+            ->lockForUpdate()
+            ->first();
     }
 
     /**

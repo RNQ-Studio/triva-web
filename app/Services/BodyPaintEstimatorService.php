@@ -131,12 +131,17 @@ class BodyPaintEstimatorService
             $photos = BodyPaintDamagePhoto::query()
                 ->where('estimate_id', $locked->getKey())
                 ->whereIn('id', $data['rejected_photo_ids'])
+                ->where(
+                    'review_status',
+                    '!=',
+                    BodyPaintPhotoReviewStatus::Rejected,
+                )
                 ->lockForUpdate()
                 ->get();
             if ($photos->count() !== count($data['rejected_photo_ids'])) {
                 throw ValidationException::withMessages([
                     'rejected_photo_ids' => [
-                        'Satu atau lebih foto tidak termasuk dalam estimasi ini.',
+                        'Satu atau lebih foto tidak termasuk dalam estimasi ini atau sudah ditolak.',
                     ],
                 ]);
             }

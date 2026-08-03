@@ -51,9 +51,21 @@ class AppraisalController extends Controller
         /** @var User $user */
         $user = $request->user();
         $vehicle = Vehicle::query()->findOrFail($request->string('vehicle_id')->toString());
-        $appraisal = $this->appraisals->createDraft($user, $vehicle);
+        $key = $request->validated('idempotency_key');
+        $result = $this->appraisals->createDraft(
+            $user,
+            $vehicle,
+            is_string($key) ? $key : null,
+        );
 
-        return ApiResponse::success(new AppraisalResource($appraisal), 'Draft appraisal dibuat.', 201);
+        return ApiResponse::success(
+            new AppraisalResource($result['appraisal']),
+            $result['replayed']
+                ? 'Draft appraisal yang sama ditemukan.'
+                : 'Draft appraisal dibuat.',
+            $result['replayed'] ? 200 : 201,
+            ['idempotent_replay' => $result['replayed']],
+        );
     }
 
     public function show(Appraisal $appraisal): JsonResponse

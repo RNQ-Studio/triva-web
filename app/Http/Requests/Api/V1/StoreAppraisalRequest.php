@@ -7,6 +7,13 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreAppraisalRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'idempotency_key' => $this->header('Idempotency-Key'),
+        ]);
+    }
+
     public function authorize(): bool
     {
         $vehicleId = $this->string('vehicle_id')->toString();
@@ -21,6 +28,8 @@ class StoreAppraisalRequest extends FormRequest
     public function rules(): array
     {
         return [
+            // Optional for backward compatibility with released API v1 clients.
+            'idempotency_key' => ['nullable', 'uuid'],
             'vehicle_id' => ['required', 'uuid', 'exists:vehicles,id'],
         ];
     }

@@ -6,11 +6,11 @@ use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use RuntimeException;
 
-class AppraisalConflictException extends RuntimeException
+class VehicleConflictException extends RuntimeException
 {
     public function __construct(
         string $message,
-        private readonly string $errorCode = 'APPRAISAL_STATE_CONFLICT',
+        private readonly string $errorCode = 'VEHICLE_STATE_CONFLICT',
     ) {
         parent::__construct($message);
     }

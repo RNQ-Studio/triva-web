@@ -13,36 +13,139 @@ use App\Support\Enums\AppraisalDecision;
 use App\Support\Enums\AppraisalPhotoAngle;
 use App\Support\Enums\AppraisalPhotoReviewStatus;
 use App\Support\Enums\AppraisalStatus;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class AppraisalService
 {
-    public function createDraft(User $user, Vehicle $vehicle): Appraisal
-    {
+    /** @return array{appraisal: Appraisal, replayed: bool} */
+    public function createDraft(
+        User $user,
+        Vehicle $vehicle,
+        ?string $idempotencyKey = null,
+    ): array {
         if ($vehicle->user_id !== $user->getKey()) {
             throw new AppraisalConflictException('Kendaraan tidak dapat digunakan untuk appraisal ini.');
         }
 
-        return DB::transaction(function () use ($user, $vehicle): Appraisal {
-            $appraisal = new Appraisal([
-                'reference_no' => $this->referenceNumber(),
-                'status' => AppraisalStatus::Draft,
-            ]);
-            $appraisal->user()->associate($user);
-            $appraisal->vehicle()->associate($vehicle);
-            $appraisal->save();
+        if ($idempotencyKey === null) {
+            return [
+                'appraisal' => DB::transaction(
+                    fn (): Appraisal => $this->persistDraft($user, $vehicle),
+                ),
+                'replayed' => false,
+            ];
+        }
 
-            $this->history(
-                $appraisal,
-                AppraisalStatus::Draft,
-                'Draft appraisal dibuat',
-                'Data Anda tersimpan dan dapat dilanjutkan.',
+        $fingerprint = hash('sha256', (string) $vehicle->getKey());
+        $existing = $this->findDraftByCreationKey($user, $idempotencyKey);
+        if ($existing !== null) {
+            return $this->replayCreatedDraft($existing, $fingerprint);
+        }
+
+        try {
+            return DB::transaction(function () use (
                 $user,
-            );
+                $vehicle,
+                $idempotencyKey,
+                $fingerprint,
+            ): array {
+                $existing = $this->findDraftByCreationKey(
+                    $user,
+                    $idempotencyKey,
+                    true,
+                );
+                if ($existing !== null) {
+                    return $this->replayCreatedDraft($existing, $fingerprint);
+                }
 
-            return $this->loadCustomerRelations($appraisal);
-        });
+                return [
+                    'appraisal' => $this->persistDraft(
+                        $user,
+                        $vehicle,
+                        $idempotencyKey,
+                        $fingerprint,
+                    ),
+                    'replayed' => false,
+                ];
+            }, 3);
+        } catch (QueryException $exception) {
+            if (($exception->errorInfo[0] ?? null) !== '23505') {
+                throw $exception;
+            }
+
+            $existing = $this->findDraftByCreationKey($user, $idempotencyKey);
+            if ($existing !== null) {
+                return $this->replayCreatedDraft($existing, $fingerprint);
+            }
+
+            throw $exception;
+        }
+    }
+
+    private function persistDraft(
+        User $user,
+        Vehicle $vehicle,
+        ?string $idempotencyKey = null,
+        ?string $fingerprint = null,
+    ): Appraisal {
+        $appraisal = new Appraisal([
+            'reference_no' => $this->referenceNumber(),
+            'status' => AppraisalStatus::Draft,
+            'creation_idempotency_key' => $idempotencyKey,
+            'creation_idempotency_fingerprint' => $fingerprint,
+        ]);
+        $appraisal->user()->associate($user);
+        $appraisal->vehicle()->associate($vehicle);
+        $appraisal->save();
+
+        $this->history(
+            $appraisal,
+            AppraisalStatus::Draft,
+            'Draft appraisal dibuat',
+            'Data Anda tersimpan dan dapat dilanjutkan.',
+            $user,
+        );
+
+        return $this->loadCustomerRelations($appraisal);
+    }
+
+    private function findDraftByCreationKey(
+        User $user,
+        string $idempotencyKey,
+        bool $lock = false,
+    ): ?Appraisal {
+        $query = Appraisal::query()
+            ->where('user_id', $user->getKey())
+            ->where('creation_idempotency_key', $idempotencyKey);
+
+        if ($lock) {
+            $query->lockForUpdate();
+        }
+
+        return $query->first();
+    }
+
+    /** @return array{appraisal: Appraisal, replayed: true} */
+    private function replayCreatedDraft(
+        Appraisal $appraisal,
+        string $fingerprint,
+    ): array {
+        if (! hash_equals(
+            (string) $appraisal->creation_idempotency_fingerprint,
+            $fingerprint,
+        )) {
+            throw new AppraisalConflictException(
+                'Idempotency-Key sudah digunakan untuk kendaraan appraisal yang berbeda.',
+                'APPRAISAL_IDEMPOTENCY_CONFLICT',
+            );
+        }
+
+        return [
+            'appraisal' => $this->loadCustomerRelations($appraisal),
+            'replayed' => true,
+        ];
     }
 
     /** @param array<string, int|string> $condition */

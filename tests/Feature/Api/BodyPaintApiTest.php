@@ -3,7 +3,9 @@
 namespace Tests\Feature\Api;
 
 use App\Models\Asset;
+use App\Models\BodyPaintDamagePhoto;
 use App\Models\BodyPaintPriceItem;
+use App\Models\BodyPaintStatusHistory;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Support\Enums\AssetStatus;
@@ -375,6 +377,172 @@ class BodyPaintApiTest extends TestCase
             'event' => 'estimate_revised',
         ]);
         $this->assertNotNull($published->json('data.valid_until'));
+    }
+
+    public function test_ten_active_photos_can_replace_a_rejection_and_resubmit_with_audit_history(): void
+    {
+        BodyPaintPriceItem::factory()->create();
+        Passport::actingAs($this->customer);
+        $estimate = $this->createDraft();
+        $updated = $this->putJson(
+            "/api/v1/body-paint/estimates/{$estimate['id']}/damages",
+            ['damages' => [$this->damagePayload()]],
+        )->assertOk()->json('data');
+        $damageId = $updated['damages'][0]['id'];
+        $photoAssets = collect(range(1, 10))
+            ->map(fn (): Asset => $this->photoAsset());
+        $photos = $photoAssets
+            ->take(9)
+            ->map(fn (Asset $asset): array => [
+                'asset_id' => $asset->getKey(),
+                'damage_id' => $damageId,
+                'photo_type' => 'close',
+            ])
+            ->push([
+                'asset_id' => $photoAssets->last()->getKey(),
+                'damage_id' => null,
+                'photo_type' => 'context',
+            ])
+            ->values()
+            ->all();
+
+        $this->postJson(
+            "/api/v1/body-paint/estimates/{$estimate['id']}/photos",
+            ['photos' => $photos],
+        )->assertOk();
+        $submitted = $this->postJson(
+            "/api/v1/body-paint/estimates/{$estimate['id']}/submit",
+            $this->submitPayload(),
+        )->assertOk()->json('data');
+        $rejectedPhoto = $submitted['damages'][0]['photos'][0];
+
+        $this->assertSame(
+            10,
+            BodyPaintDamagePhoto::query()
+                ->where('estimate_id', $estimate['id'])
+                ->where('review_status', '!=', 'rejected')
+                ->count(),
+        );
+
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+        Passport::actingAs($admin);
+        $this->postJson(
+            "/api/v1/admin/body-paint/estimates/{$estimate['id']}/actions",
+            ['action' => 'start_review'],
+        )->assertOk();
+        $this->postJson(
+            "/api/v1/admin/body-paint/estimates/{$estimate['id']}/actions",
+            [
+                'action' => 'request_photos',
+                'reason_code' => 'blurred',
+                'reason' => 'Foto bumper terlalu buram dan harus diambil ulang.',
+                'rejected_photo_ids' => [$rejectedPhoto['id']],
+            ],
+        )
+            ->assertOk()
+            ->assertJsonPath('data.status', 'needs_customer_action');
+
+        Passport::actingAs($this->customer);
+        $this->postJson(
+            "/api/v1/body-paint/estimates/{$estimate['id']}/resubmit",
+            $this->submitPayload(),
+        )
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['photos']);
+        $this->putJson(
+            "/api/v1/body-paint/estimates/{$estimate['id']}/damages",
+            [
+                'damages' => [[
+                    ...$this->damagePayload(),
+                    'panel_code' => 'rear_bumper',
+                ]],
+            ],
+        )
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['damages']);
+        $this->postJson(
+            "/api/v1/body-paint/estimates/{$estimate['id']}/photos",
+            [
+                'photos' => [[
+                    'asset_id' => $rejectedPhoto['asset_id'],
+                    'damage_id' => $damageId,
+                    'photo_type' => 'close',
+                ]],
+            ],
+        )
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['photos']);
+
+        $intruder = User::factory()->create();
+        $intruderAsset = Asset::factory()->create([
+            'user_id' => $intruder->getKey(),
+            'storage_type' => StorageType::PrivateLocal,
+            'category' => 'body-paint-estimate-photo',
+            'is_protected' => true,
+            'status' => AssetStatus::Active,
+            'url' => null,
+        ]);
+        Passport::actingAs($intruder);
+        $this->postJson(
+            "/api/v1/body-paint/estimates/{$estimate['id']}/photos",
+            [
+                'photos' => [[
+                    'asset_id' => $intruderAsset->getKey(),
+                    'damage_id' => $damageId,
+                    'photo_type' => 'close',
+                ]],
+            ],
+        )->assertForbidden();
+
+        Passport::actingAs($this->customer);
+        $replacementAsset = $this->photoAsset();
+        $this->postJson(
+            "/api/v1/body-paint/estimates/{$estimate['id']}/photos",
+            [
+                'photos' => [[
+                    'asset_id' => $replacementAsset->getKey(),
+                    'damage_id' => $damageId,
+                    'photo_type' => 'close',
+                ]],
+            ],
+        )->assertOk();
+        $this->postJson(
+            "/api/v1/body-paint/estimates/{$estimate['id']}/resubmit",
+            $this->submitPayload(),
+        )
+            ->assertOk()
+            ->assertJsonPath('data.status', 'auto_estimated');
+
+        $replacement = BodyPaintDamagePhoto::query()
+            ->where('asset_id', $replacementAsset->getKey())
+            ->firstOrFail();
+        $this->assertSame($rejectedPhoto['id'], $replacement->replaces_photo_id);
+        $this->assertDatabaseHas('body_paint_damage_photos', [
+            'id' => $rejectedPhoto['id'],
+            'review_status' => 'rejected',
+        ]);
+        $this->assertDatabaseCount('body_paint_damage_photos', 11);
+        $this->assertSame(
+            10,
+            BodyPaintDamagePhoto::query()
+                ->where('estimate_id', $estimate['id'])
+                ->where('review_status', '!=', 'rejected')
+                ->count(),
+        );
+
+        $history = BodyPaintStatusHistory::query()
+            ->where('estimate_id', $estimate['id'])
+            ->where('event', 'photos_updated')
+            ->latest('id')
+            ->firstOrFail();
+        $this->assertSame(
+            [
+                'rejected_photo_id' => $rejectedPhoto['id'],
+                'replacement_photo_id' => $replacement->getKey(),
+            ],
+            $history->metadata['replacements'][0],
+        );
     }
 
     public function test_customer_result_is_private_and_can_be_declined(): void

@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 /**
  * @property string $id
  * @property int $user_id
+ * @property string|null $creation_idempotency_key
+ * @property string|null $creation_idempotency_fingerprint
  * @property int|null $vehicle_make_id
  * @property int|null $vehicle_model_id
  * @property int|null $vehicle_variant_id
@@ -35,6 +37,8 @@ class Vehicle extends Model
     use HasFactory, HasUuids, SoftDeletes;
 
     protected $fillable = [
+        'creation_idempotency_key',
+        'creation_idempotency_fingerprint',
         'vehicle_make_id',
         'vehicle_model_id',
         'vehicle_variant_id',

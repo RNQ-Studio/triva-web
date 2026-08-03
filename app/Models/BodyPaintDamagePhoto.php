@@ -6,6 +6,7 @@ use App\Support\Enums\BodyPaintPhotoReviewStatus;
 use App\Support\Enums\BodyPaintPhotoType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -13,6 +14,7 @@ use Illuminate\Support\Carbon;
  * @property string $estimate_id
  * @property string|null $damage_id
  * @property string $asset_id
+ * @property int|null $replaces_photo_id
  * @property BodyPaintPhotoType $photo_type
  * @property BodyPaintPhotoReviewStatus $review_status
  * @property string|null $rejection_reason_code
@@ -22,6 +24,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Asset $asset
+ * @property-read BodyPaintDamagePhoto|null $replacedPhoto
+ * @property-read BodyPaintDamagePhoto|null $replacement
  */
 class BodyPaintDamagePhoto extends Model
 {
@@ -40,6 +44,7 @@ class BodyPaintDamagePhoto extends Model
     protected function casts(): array
     {
         return [
+            'replaces_photo_id' => 'integer',
             'photo_type' => BodyPaintPhotoType::class,
             'review_status' => BodyPaintPhotoReviewStatus::class,
             'reviewed_at' => 'datetime',
@@ -62,6 +67,18 @@ class BodyPaintDamagePhoto extends Model
     public function asset(): BelongsTo
     {
         return $this->belongsTo(Asset::class);
+    }
+
+    /** @return BelongsTo<BodyPaintDamagePhoto, $this> */
+    public function replacedPhoto(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'replaces_photo_id');
+    }
+
+    /** @return HasOne<BodyPaintDamagePhoto, $this> */
+    public function replacement(): HasOne
+    {
+        return $this->hasOne(self::class, 'replaces_photo_id');
     }
 
     /** @return BelongsTo<User, $this> */
