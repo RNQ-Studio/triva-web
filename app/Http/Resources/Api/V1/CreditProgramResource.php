@@ -42,6 +42,7 @@ class CreditProgramResource extends JsonResource
             'effective_from' => $this->effective_from->toDateString(),
             'effective_to' => $this->effective_to?->toDateString(),
             'source_reference' => $this->source_reference,
+            'is_demo' => $this->is_demo,
             'is_estimate' => true,
             'disclaimer' => 'Hasil simulasi bersifat estimasi dan bukan persetujuan kredit.',
         ];

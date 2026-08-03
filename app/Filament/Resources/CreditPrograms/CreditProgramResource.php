@@ -14,6 +14,7 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -189,6 +190,14 @@ class CreditProgramResource extends Resource
                     ->maxLength(2000)
                     ->disabled($locked)
                     ->columnSpanFull(),
+                Toggle::make('is_demo')
+                    ->label('Data demonstrasi')
+                    ->helperText(
+                        'Penanda ini dikelola oleh seeder demo dan selalu dikirim ke aplikasi customer.'
+                    )
+                    ->default(false)
+                    ->disabled()
+                    ->dehydrated(),
                 TextInput::make('formula_strategy')
                     ->default('flat_rate')
                     ->disabled()
@@ -231,6 +240,19 @@ class CreditProgramResource extends Resource
                 TextColumn::make('effective_to')
                     ->label('Berlaku s.d.')
                     ->date(),
+                TextColumn::make('is_demo')
+                    ->label('Jenis')
+                    ->badge()
+                    ->formatStateUsing(
+                        fn (bool $state): string => $state
+                            ? 'Demo'
+                            : 'Program partner'
+                    )
+                    ->color(
+                        fn (bool $state): string => $state
+                            ? 'warning'
+                            : 'success'
+                    ),
             ])
             ->filters([
                 SelectFilter::make('status')->options(

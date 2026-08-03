@@ -231,6 +231,7 @@ class CreditSimulationCalculator
             'effective_from' => $program->effective_from->toDateString(),
             'effective_to' => $program->effective_to?->toDateString(),
             'source_reference' => $program->source_reference,
+            'is_demo' => $program->is_demo,
         ];
     }
 

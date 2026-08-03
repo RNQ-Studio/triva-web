@@ -11,6 +11,8 @@ use App\Models\CreditSimulation;
 use App\Models\User;
 use App\Services\CreditProgramCsvImportService;
 use App\Support\Enums\CreditLeadStatus;
+use App\Support\Enums\CreditProgramStatus;
+use Database\Seeders\CreditProgramDemoSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -28,6 +30,7 @@ class CreditProgramManagementTest extends TestCase
         parent::setUp();
 
         $this->seed(RolePermissionSeeder::class);
+        CreditProgram::query()->delete();
         $this->admin = User::factory()->create();
         $this->admin->assignRole('admin');
     }
@@ -83,6 +86,36 @@ class CreditProgramManagementTest extends TestCase
         } finally {
             unlink($path);
         }
+    }
+
+    public function test_demo_program_seeder_is_idempotent_and_does_not_reactivate_retired_data(): void
+    {
+        $this->seed(CreditProgramDemoSeeder::class);
+        $this->seed(CreditProgramDemoSeeder::class);
+
+        $program = CreditProgram::query()
+            ->where('program_code', 'TRIVA-DEMO-CREDIT')
+            ->firstOrFail();
+        $this->assertDatabaseCount('credit_programs', 1);
+        $this->assertTrue($program->is_demo);
+        $this->assertStringContainsString(
+            'Bukan Penawaran Kredit',
+            $program->program_name,
+        );
+        $this->assertStringContainsString('dummy', $program->source_reference);
+        $this->assertCount(3, $program->tenor_options);
+        $this->assertSame(
+            '2026-08-31',
+            $program->effective_to?->toDateString(),
+        );
+
+        $program->update(['status' => CreditProgramStatus::Inactive]);
+        $this->seed(CreditProgramDemoSeeder::class);
+
+        $this->assertSame(
+            CreditProgramStatus::Inactive,
+            $program->refresh()->status,
+        );
     }
 
     public function test_csv_preview_reports_row_errors_without_writing(): void

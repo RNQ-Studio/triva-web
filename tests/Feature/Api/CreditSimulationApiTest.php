@@ -31,6 +31,7 @@ class CreditSimulationApiTest extends TestCase
         Carbon::setTestNow(Carbon::parse('2026-07-27 03:00:00', 'UTC'));
         Queue::fake();
         $this->seed(RolePermissionSeeder::class);
+        CreditProgram::query()->delete();
         $this->customer = User::factory()->create([
             'phone' => '+6281234567890',
             'city' => 'Surabaya',
@@ -129,6 +130,23 @@ class CreditSimulationApiTest extends TestCase
             ->assertJsonPath('data.calculation.total_payment', 296625000)
             ->assertJsonPath('data.formula_version', 'flat-v1')
             ->assertJsonPath('data.is_estimate', true);
+    }
+
+    public function test_demo_marker_is_exposed_in_catalog_and_calculation(): void
+    {
+        $this->program->update(['is_demo' => true]);
+        Passport::actingAs($this->customer);
+
+        $this->getJson('/api/v1/credit/programs')
+            ->assertOk()
+            ->assertJsonPath('data.0.is_demo', true);
+
+        $this->postJson(
+            '/api/v1/credit/simulations/calculate',
+            $this->validPayload(),
+        )
+            ->assertOk()
+            ->assertJsonPath('data.program.is_demo', true);
     }
 
     public function test_calculator_rejects_stale_price_invalid_tenor_and_dp_bounds(): void

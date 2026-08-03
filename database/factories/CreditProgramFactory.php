@@ -52,6 +52,7 @@ class CreditProgramFactory extends Factory
             'effective_from' => now('Asia/Jakarta')->subDay()->toDateString(),
             'effective_to' => now('Asia/Jakarta')->addMonth()->toDateString(),
             'source_reference' => 'Dokumen program pembiayaan test.',
+            'is_demo' => false,
             'status' => CreditProgramStatus::Approved,
             'approved_at' => now(),
         ];

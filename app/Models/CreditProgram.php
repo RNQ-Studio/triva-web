@@ -35,6 +35,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
  * @property Carbon $effective_from
  * @property Carbon|null $effective_to
  * @property string $source_reference
+ * @property bool $is_demo
  * @property CreditProgramStatus $status
  * @property int|null $approved_by
  * @property Carbon|null $approved_at
@@ -63,6 +64,7 @@ class CreditProgram extends Model
         'effective_from',
         'effective_to',
         'source_reference',
+        'is_demo',
         'status',
         'approved_by',
         'approved_at',
@@ -80,6 +82,7 @@ class CreditProgram extends Model
             'tenor_options' => 'array',
             'effective_from' => 'date',
             'effective_to' => 'date',
+            'is_demo' => 'boolean',
             'status' => CreditProgramStatus::class,
             'approved_at' => 'datetime',
         ];
