@@ -131,7 +131,7 @@ Route::prefix('v1')->group(function (): void {
                 ->middleware('throttle:60,1');
             Route::get('bookings', [ToyotaServiceController::class, 'index']);
             Route::post('bookings', [ToyotaServiceController::class, 'store'])
-                ->middleware('throttle:10,1');
+                ->middleware('throttle:toyota-service-booking-submission');
             Route::get('bookings/{booking}', [ToyotaServiceController::class, 'show']);
             Route::post(
                 'bookings/{booking}/accept-alternative',

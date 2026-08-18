@@ -298,6 +298,37 @@ class ToyotaServiceApiTest extends TestCase
         $this->assertDatabaseCount('toyota_service_bookings', 1);
     }
 
+    public function test_create_rate_limit_is_isolated_and_returns_actionable_error(): void
+    {
+        Passport::actingAs($this->customer);
+
+        for ($attempt = 0; $attempt < 10; $attempt++) {
+            $this->postJson('/api/v1/appraisals/'.Str::uuid().'/submit')
+                ->assertNotFound();
+        }
+
+        $key = (string) Str::uuid();
+        $this->withHeader('Idempotency-Key', $key)
+            ->postJson('/api/v1/toyota-service/bookings', $this->bookingPayload())
+            ->assertCreated();
+
+        for ($attempt = 1; $attempt < 10; $attempt++) {
+            $this->withHeader('Idempotency-Key', $key)
+                ->postJson('/api/v1/toyota-service/bookings', $this->bookingPayload())
+                ->assertOk()
+                ->assertJsonPath('meta.idempotent_replay', true);
+        }
+
+        $this->withHeader('Idempotency-Key', $key)
+            ->postJson('/api/v1/toyota-service/bookings', $this->bookingPayload())
+            ->assertTooManyRequests()
+            ->assertHeader('Retry-After')
+            ->assertJsonPath('code', 'TOYOTA_SERVICE_RATE_LIMITED')
+            ->assertJsonPath('success', false);
+
+        $this->assertDatabaseCount('toyota_service_bookings', 1);
+    }
+
     public function test_create_accepts_an_earlier_alternative_but_rejects_identical_preferences(): void
     {
         Passport::actingAs($this->customer);

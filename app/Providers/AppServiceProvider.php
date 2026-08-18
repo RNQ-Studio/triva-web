@@ -9,13 +9,17 @@ use App\Services\Push\FcmDriverInterface;
 use App\Services\Push\LogFcmDriver;
 use App\Services\Sms\LogSmsProvider;
 use App\Services\Sms\SmsInterface;
+use App\Support\ApiResponse;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Kreait\Laravel\Firebase\Facades\Firebase;
@@ -50,6 +54,18 @@ class AppServiceProvider extends ServiceProvider
         Passport::enablePasswordGrant();
         Passport::tokensExpireIn(now()->addHours(8));
         Passport::refreshTokensExpireIn(now()->addDays(30));
+
+        RateLimiter::for('toyota-service-booking-submission', function (Request $request): Limit {
+            $identifier = $request->user()?->getAuthIdentifier() ?? 'ip:'.$request->ip();
+
+            return Limit::perMinute(10)
+                ->by((string) $identifier)
+                ->response(fn (Request $request, array $headers) => ApiResponse::error(
+                    message: 'Terlalu banyak percobaan booking. Tunggu sebentar lalu coba lagi.',
+                    status: 429,
+                    code: 'TOYOTA_SERVICE_RATE_LIMITED',
+                )->withHeaders($headers));
+        });
 
         // spatie's Role model lives in the vendor namespace, so its policy
         // must be registered explicitly (User's policy is auto-discovered).
