@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\AdminBodyPaintController;
 use App\Http\Controllers\Api\V1\AdminOtoxpertBookingController;
 use App\Http\Controllers\Api\V1\AdminToyotaServiceBookingController;
 use App\Http\Controllers\Api\V1\AdminUserController;
+use App\Http\Controllers\Api\V1\AdminVisitStatisticsController;
 use App\Http\Controllers\Api\V1\AppController;
 use App\Http\Controllers\Api\V1\AppraisalController;
 use App\Http\Controllers\Api\V1\ArticleController;
@@ -27,6 +28,7 @@ use App\Http\Controllers\Api\V1\ToyotaServiceController;
 use App\Http\Controllers\Api\V1\VehicleController;
 use App\Http\Controllers\Api\V1\VehicleMakeController;
 use App\Http\Controllers\Api\V1\VehicleModelController;
+use App\Http\Controllers\Api\V1\VisitController;
 use App\Http\Controllers\Webhook\GithubDeployWebhookController;
 use App\Support\ApiResponse;
 use Illuminate\Support\Facades\Route;
@@ -47,6 +49,9 @@ Route::prefix('v1')->group(function (): void {
     Route::post('users/import', [UserExcelController::class, 'import']);
 
     Route::get('health', HealthController::class);
+
+    Route::post('analytics/visits', [VisitController::class, 'store'])
+        ->middleware(['throttle:visit-ingestion', 'check.maintenance']);
 
     // Unauthenticated app info endpoints (no maintenance check — needed to show maintenance message)
     Route::prefix('app')->group(function (): void {
@@ -316,6 +321,8 @@ Route::prefix('v1')->group(function (): void {
             Route::post('{user}/grant-admin', [AdminUserController::class, 'grantAdmin'])
                 ->middleware('throttle:30,1');
         });
+
+        Route::get('admin/analytics/visits', AdminVisitStatisticsController::class);
 
         Route::apiResource('categories', CategoryController::class);
         Route::apiResource('articles', ArticleController::class);

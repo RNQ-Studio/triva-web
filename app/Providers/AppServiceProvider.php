@@ -67,6 +67,18 @@ class AppServiceProvider extends ServiceProvider
                 )->withHeaders($headers));
         });
 
+        RateLimiter::for('visit-ingestion', function (Request $request): Limit {
+            $identifier = hash('sha256', (string) $request->ip());
+
+            return Limit::perMinute(30)
+                ->by('visit-ingestion:'.$identifier)
+                ->response(fn (Request $request, array $headers) => ApiResponse::error(
+                    message: 'Terlalu banyak event kunjungan. Coba lagi sebentar lagi.',
+                    status: 429,
+                    code: 'VISIT_RATE_LIMITED',
+                )->withHeaders($headers));
+        });
+
         // spatie's Role model lives in the vendor namespace, so its policy
         // must be registered explicitly (User's policy is auto-discovered).
         Gate::policy(Role::class, RolePolicy::class);

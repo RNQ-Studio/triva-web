@@ -37,6 +37,7 @@ class RolePermissionSeeder extends Seeder
         'credit_leads',
         'bp_estimates',
         'bp_price_matrix',
+        'analytics',
     ];
 
     /** @var list<string> */
@@ -80,6 +81,7 @@ class RolePermissionSeeder extends Seeder
             'credit_leads.viewAny', 'credit_leads.view', 'credit_leads.update',
             'bp_estimates.viewAny', 'bp_estimates.view', 'bp_estimates.create', 'bp_estimates.update',
             'bp_price_matrix.viewAny', 'bp_price_matrix.view', 'bp_price_matrix.create', 'bp_price_matrix.update',
+            'analytics.viewAny', 'analytics.view',
         ]);
 
         $staff->syncPermissions([
