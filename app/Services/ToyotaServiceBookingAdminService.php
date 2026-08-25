@@ -700,9 +700,9 @@ class ToyotaServiceBookingAdminService
         }
 
         $booking->loadMissing('serviceLocation');
-        $place = $booking->serviceLocation?->name;
+        $place = trim($booking->serviceLocation->name);
 
-        return $place === null
+        return $place === ''
             ? "{$booking->reference_no} terjadwal {$schedule} WIB."
             : "{$booking->reference_no} terjadwal {$schedule} WIB di {$place}.";
     }

@@ -265,9 +265,9 @@ class OtoxpertBookingAdminService
         }
 
         $booking->loadMissing('workshop');
-        $place = $booking->workshop?->name;
+        $place = trim($booking->workshop->name);
 
-        return $place === null
+        return $place === ''
             ? "{$booking->reference_no} terjadwal {$schedule} WIB."
             : "{$booking->reference_no} terjadwal {$schedule} WIB di {$place}.";
     }

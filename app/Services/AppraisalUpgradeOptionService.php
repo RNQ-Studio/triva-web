@@ -75,7 +75,7 @@ class AppraisalUpgradeOptionService
             ->effective()
             ->where('otr_price', '>', $tradeInValue)
             ->when(
-                filled($appraisal->vehicle?->city),
+                filled($appraisal->vehicle->city),
                 fn ($query) => $query->where('city', $appraisal->vehicle->city),
             )
             ->orderBy('otr_price')

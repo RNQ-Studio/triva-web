@@ -279,7 +279,7 @@ class AppraisalValuationEngine
         array $evidence,
     ): array {
         $appraisal->loadMissing('vehicle');
-        $retained = $this->retainedValueRatio($appraisal->vehicle?->year);
+        $retained = $this->retainedValueRatio($appraisal->vehicle->year);
         $marketMid = $this->roundPrice((int) round($newVehiclePrice * $retained));
         $spread = (float) config('appraisal.depreciation.spread_percent') / 100;
         $marketLow = $this->roundPrice((int) round($marketMid * (1 - $spread)));
@@ -310,7 +310,7 @@ class AppraisalValuationEngine
                 'algorithm' => 'depreciation_fallback_v1',
                 'fallback_reason' => 'no_market_evidence_available',
                 'new_vehicle_price' => $newVehiclePrice,
-                'vehicle_year' => $appraisal->vehicle?->year,
+                'vehicle_year' => $appraisal->vehicle->year,
                 'retained_ratio' => round($retained, 4),
                 'first_year_percent' => (float) config(
                     'appraisal.depreciation.first_year_percent',
@@ -331,9 +331,9 @@ class AppraisalValuationEngine
      * Tahun pertama menyusut paling dalam, lalu melandai. Hasilnya ditahan
      * pada batas bawah supaya unit tua tidak pernah bernilai mendekati nol.
      */
-    private function retainedValueRatio(?int $year): float
+    private function retainedValueRatio(int $year): float
     {
-        $age = $year === null ? 0 : max(0, (int) now('Asia/Jakarta')->year - $year);
+        $age = max(0, (int) now('Asia/Jakarta')->year - $year);
         $firstYear = (float) config('appraisal.depreciation.first_year_percent') / 100;
         $annual = (float) config('appraisal.depreciation.annual_percent') / 100;
         $minimum = (float) config('appraisal.depreciation.minimum_retained_percent') / 100;
@@ -584,7 +584,7 @@ class AppraisalValuationEngine
      */
     private function conditionGradePercent(Appraisal $appraisal): float
     {
-        $grade = strtolower((string) ($appraisal->condition_grade ?? ''));
+        $grade = strtolower((string) $appraisal->condition_grade);
 
         return (float) (config('appraisal.market_data.condition_grade_percent')[$grade] ?? 0.0);
     }
@@ -596,7 +596,7 @@ class AppraisalValuationEngine
      */
     private function marketCorrectionPercent(Appraisal $appraisal): float
     {
-        $isDiesel = $this->normalize((string) ($appraisal->vehicle?->fuel_type ?? '')) === 'diesel';
+        $isDiesel = $this->normalize($appraisal->vehicle->fuel_type) === 'diesel';
 
         return (float) config(
             $isDiesel

@@ -301,10 +301,6 @@ class AppraisalMarketDataService
     private function newVehiclePrice(Appraisal $appraisal): ?int
     {
         $vehicle = $appraisal->vehicle;
-        if ($vehicle === null) {
-            return null;
-        }
-
         $programs = CreditProgram::query()
             ->effective()
             ->where('vehicle_model', $vehicle->model)
@@ -318,7 +314,11 @@ class AppraisalMarketDataService
                 === $this->normalizeText($vehicle->variant),
         );
 
-        return (int) ($variantMatch?->otr_price ?? $programs->min('otr_price'));
+        if ($variantMatch instanceof CreditProgram) {
+            return $variantMatch->otr_price;
+        }
+
+        return (int) $programs->min('otr_price');
     }
 
     private function normalizeText(string $value): string
