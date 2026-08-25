@@ -328,7 +328,6 @@ class OpenAiPriceDecisionProvider
     private function conditionPayload(Appraisal $appraisal): array
     {
         return [
-            'condition_percentage' => $appraisal->condition_percentage,
             'condition_grade' => $appraisal->condition_grade,
             'engine_condition' => $appraisal->engine_condition,
             'tyre_condition' => $appraisal->tyre_condition,

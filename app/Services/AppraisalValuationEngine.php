@@ -450,15 +450,6 @@ class AppraisalValuationEngine
                 'percentage' => $marketCorrection,
             ];
         }
-        $conditionAdjustment = round((90 - $appraisal->condition_percentage) * 0.15, 2);
-        if ($conditionAdjustment !== 0.0) {
-            $adjustments[] = [
-                'code' => 'vehicle_condition',
-                'label' => 'Kondisi kendaraan',
-                'percentage' => max(-2.0, min(8.0, $conditionAdjustment)),
-            ];
-        }
-
         $penalties = [
             ['field' => 'tax_status', 'value' => 'overdue', 'code' => 'tax', 'label' => 'Status pajak', 'percentage' => 2.0],
             ['field' => 'flood_history', 'value' => 'yes', 'code' => 'flood', 'label' => 'Riwayat banjir', 'percentage' => 15.0],

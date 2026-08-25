@@ -54,7 +54,6 @@ class AppraisalMarketDataProcessingTest extends TestCase
             'major_accident_history' => 'no',
             'service_history' => 'complete',
             'ownership' => 'first',
-            'condition_percentage' => 90,
         ]);
 
         $estimate = app(AppraisalMarketDataService::class)->process($appraisal);
@@ -235,7 +234,6 @@ class AppraisalMarketDataProcessingTest extends TestCase
                 'major_accident_history' => 'no',
                 'service_history' => 'complete',
                 'ownership' => 'first',
-                'condition_percentage' => 90,
             ]);
     }
 

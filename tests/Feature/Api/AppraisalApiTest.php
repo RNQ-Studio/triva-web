@@ -190,17 +190,17 @@ class AppraisalApiTest extends TestCase
 
         $this->putJson(
             "/api/v1/appraisals/{$appraisal->id}/vehicle-condition",
-            [...$this->conditionPayload(), 'condition_percentage' => 101],
+            [...$this->conditionPayload(), 'condition_grade' => 'e'],
         )
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['condition_percentage']);
+            ->assertJsonValidationErrors(['condition_grade']);
 
         $this->putJson(
             "/api/v1/appraisals/{$appraisal->id}/vehicle-condition",
             $this->conditionPayload(),
         )
             ->assertOk()
-            ->assertJsonPath('data.condition.condition_percentage', 90)
+            ->assertJsonMissingPath('data.condition.condition_percentage')
             ->assertJsonPath('data.condition.condition_grade', 'b')
             ->assertJsonPath('data.condition.engine_condition', 'normal')
             ->assertJsonPath('data.condition.tyre_condition', 'normal');
@@ -470,7 +470,6 @@ class AppraisalApiTest extends TestCase
             'major_accident_history' => 'no',
             'service_history' => 'complete',
             'ownership' => 'first',
-            'condition_percentage' => 90,
             'condition_grade' => 'b',
             'engine_condition' => 'normal',
             'tyre_condition' => 'normal',

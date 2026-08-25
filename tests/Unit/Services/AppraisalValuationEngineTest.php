@@ -30,7 +30,6 @@ class AppraisalValuationEngineTest extends TestCase
             'major_accident_history' => 'no',
             'service_history' => 'complete',
             'ownership' => 'first',
-            'condition_percentage' => 90,
         ]);
         $appraisal->setRelation('vehicle', $vehicle);
         $listings = collect(range(1, 8))
@@ -199,7 +198,6 @@ class AppraisalValuationEngineTest extends TestCase
             'major_accident_history' => 'no',
             'service_history' => 'complete',
             'ownership' => 'first',
-            'condition_percentage' => 90,
             'condition_grade' => 'a',
             'engine_condition' => 'normal',
             'tyre_condition' => 'normal',

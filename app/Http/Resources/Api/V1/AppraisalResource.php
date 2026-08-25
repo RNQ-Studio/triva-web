@@ -34,7 +34,6 @@ class AppraisalResource extends JsonResource
                 'major_accident_history' => $this->major_accident_history,
                 'service_history' => $this->service_history,
                 'ownership' => $this->ownership,
-                'condition_percentage' => $this->condition_percentage,
                 'condition_grade' => $this->condition_grade,
                 'engine_condition' => $this->engine_condition,
                 'tyre_condition' => $this->tyre_condition,

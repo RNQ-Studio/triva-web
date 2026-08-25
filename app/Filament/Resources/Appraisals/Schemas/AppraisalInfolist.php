@@ -49,7 +49,7 @@ class AppraisalInfolist
                     TextEntry::make('service_history')->label('Riwayat servis')->placeholder('Belum diisi'),
                     TextEntry::make('ownership')->label('Kepemilikan')->placeholder('Belum diisi'),
                     TextEntry::make('condition_percentage')
-                        ->label('Kondisi saat ini')
+                        ->label('Kondisi (data lama)')
                         ->suffix('%'),
                     TextEntry::make('condition_grade')
                         ->label('Grade kondisi')

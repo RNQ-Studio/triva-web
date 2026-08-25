@@ -91,7 +91,8 @@ class AppraisalAiFallbackTest extends TestCase
         self::assertSame('Toyota', data_get($input, 'vehicle.make'));
         self::assertSame('Avanza', data_get($input, 'vehicle.model'));
         self::assertSame('1.5 G', data_get($input, 'vehicle.variant'));
-        self::assertSame(90, data_get($input, 'condition.condition_percentage'));
+        self::assertNull(data_get($input, 'condition.condition_percentage'));
+        self::assertSame('b', data_get($input, 'condition.condition_grade'));
     }
 
     public function test_partial_olx_evidence_is_passed_without_urls_or_seller_data(): void
@@ -284,7 +285,7 @@ class AppraisalAiFallbackTest extends TestCase
             'major_accident_history' => 'no',
             'service_history' => 'complete',
             'ownership' => 'first',
-            'condition_percentage' => 90,
+            'condition_grade' => 'b',
         ]);
     }
 
