@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\Notification;
 use App\Models\ToyotaServiceBooking;
 use App\Models\ToyotaServiceLocation;
 use App\Models\ToyotaServiceType;
@@ -308,6 +309,33 @@ class ToyotaServiceAdminApiTest extends TestCase
         ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['confirmed_slot.date']);
+    }
+
+    public function test_confirmation_notification_states_the_schedule_and_place(): void
+    {
+        Passport::actingAs($this->customer);
+        $booking = $this->createBooking();
+        Passport::actingAs($this->admin);
+
+        $this->postJson(
+            "/api/v1/admin/toyota-service/bookings/{$booking->id}/actions",
+            [
+                'action' => 'confirm',
+                'confirmed_slot' => ['date' => '2026-07-29', 'time_window' => '09:00-11:00'],
+                'pic_name' => 'Service Advisor Kertajaya',
+                'arrival_instructions' => 'Datang 15 menit sebelum jadwal.',
+            ],
+        )->assertOk();
+
+        // Pelanggan harus tahu dirinya sudah terjadwal tanpa membuka aplikasi.
+        $notification = Notification::query()
+            ->where('user_id', $booking->user_id)
+            ->where('title', 'Booking Toyota dikonfirmasi')
+            ->firstOrFail();
+        self::assertStringContainsString($booking->reference_no, $notification->body);
+        self::assertStringContainsString('29 July 2026', $notification->body);
+        self::assertStringContainsString('09:00-11:00', $notification->body);
+        self::assertStringContainsString($this->location->name, $notification->body);
     }
 
     public function test_internal_confirmation_note_is_not_exposed_to_customer_timeline(): void

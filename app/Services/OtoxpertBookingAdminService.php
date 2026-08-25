@@ -240,8 +240,36 @@ class OtoxpertBookingAdminService
             $reschedule
                 ? 'Jadwal ulang OtoXpert dikonfirmasi'
                 : 'Booking OtoXpert dikonfirmasi',
-            "Jadwal {$booking->reference_no} telah dikonfirmasi.",
+            $this->confirmationBody($booking),
         );
+    }
+
+    /**
+     * Isi notifikasi konfirmasi memuat tanggal, jam, dan bengkelnya, menjawab
+     * pertanyaan Bp. Iyan (20 Agustus 2026) tentang bagaimana pelanggan tahu
+     * dirinya sudah terjadwal.
+     */
+    private function confirmationBody(OtoxpertBooking $booking): string
+    {
+        $start = $booking->confirmed_start_at;
+        $end = $booking->confirmed_end_at;
+        if ($start === null) {
+            return "Jadwal {$booking->reference_no} telah dikonfirmasi.";
+        }
+
+        $localStart = $start->copy()->timezone('Asia/Jakarta');
+        $schedule = $localStart->translatedFormat('l, d F Y').' pukul '
+            .$localStart->format('H:i');
+        if ($end !== null) {
+            $schedule .= '-'.$end->copy()->timezone('Asia/Jakarta')->format('H:i');
+        }
+
+        $booking->loadMissing('workshop');
+        $place = $booking->workshop?->name;
+
+        return $place === null
+            ? "{$booking->reference_no} terjadwal {$schedule} WIB."
+            : "{$booking->reference_no} terjadwal {$schedule} WIB di {$place}.";
     }
 
     /** @param array<string, mixed> $data */

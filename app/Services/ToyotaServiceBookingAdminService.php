@@ -362,7 +362,7 @@ class ToyotaServiceBookingAdminService
         $this->notifyAfterCommit(
             $booking,
             $isReschedule ? 'Jadwal ulang dikonfirmasi' : 'Booking Toyota dikonfirmasi',
-            "Buka {$booking->reference_no} untuk melihat jadwal dan instruksi.",
+            $this->confirmationBody($booking),
         );
     }
 
@@ -676,6 +676,37 @@ class ToyotaServiceBookingAdminService
     /**
      * @return array{start_at: string, end_at: string}|null
      */
+    /**
+     * Isi notifikasi konfirmasi memuat tanggal, jam, dan lokasi.
+     *
+     * Pertanyaan Bp. Iyan pada 20 Agustus 2026 -- "kalau customer booking,
+     * caranya dia tahu kalau dia sudah terjadwal bagaimana?" -- dijawab dengan
+     * memindahkan jadwalnya ke badan notifikasi, sehingga pelanggan tahu tanpa
+     * perlu membuka aplikasi lebih dulu.
+     */
+    private function confirmationBody(ToyotaServiceBooking $booking): string
+    {
+        $start = $booking->confirmed_start_at;
+        $end = $booking->confirmed_end_at;
+        if ($start === null) {
+            return "Buka {$booking->reference_no} untuk melihat jadwal dan instruksi.";
+        }
+
+        $localStart = $start->copy()->timezone('Asia/Jakarta');
+        $schedule = $localStart->translatedFormat('l, d F Y').' pukul '
+            .$localStart->format('H:i');
+        if ($end !== null) {
+            $schedule .= '-'.$end->copy()->timezone('Asia/Jakarta')->format('H:i');
+        }
+
+        $booking->loadMissing('serviceLocation');
+        $place = $booking->serviceLocation?->name;
+
+        return $place === null
+            ? "{$booking->reference_no} terjadwal {$schedule} WIB."
+            : "{$booking->reference_no} terjadwal {$schedule} WIB di {$place}.";
+    }
+
     private function slotAudit(mixed $start, mixed $end): ?array
     {
         if ($start === null || $end === null) {
