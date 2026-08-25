@@ -27,6 +27,28 @@ return [
         ),
         'result_valid_days' => (int) env('APPRAISAL_RESULT_VALID_DAYS', 7),
         'dealer_margin_percent' => (float) env('APPRAISAL_DEALER_MARGIN_PERCENT', 7),
+
+        /*
+         * Koreksi pasar hasil meeting 19 Agustus 2026: harga appraisal yang
+         * tersaji masih 10-15 juta di atas penawaran OLX, sehingga tiap unit
+         * diturunkan 10% dan unit diesel diturunkan 20%. Angkanya sengaja
+         * dibuat konfigurasi supaya cabang bisa dikoreksi tanpa rilis ulang.
+         */
+        'market_correction_percent' => (float) env('APPRAISAL_MARKET_CORRECTION_PERCENT', 10),
+        'diesel_market_correction_percent' => (float) env(
+            'APPRAISAL_DIESEL_MARKET_CORRECTION_PERCENT',
+            20,
+        ),
+
+        /*
+         * Batas atas seluruh potongan yang menumpuk. Tanpa batas ini, unit
+         * diesel bekas banjir sekaligus tabrakan berat bisa terpotong hampir
+         * 60% dan menghasilkan penawaran yang tidak masuk akal.
+         */
+        'maximum_total_deduction_percent' => (float) env(
+            'APPRAISAL_MAX_TOTAL_DEDUCTION_PERCENT',
+            45,
+        ),
         'rounding' => (int) env('APPRAISAL_PRICE_ROUNDING', 500_000),
     ],
     'ai' => [

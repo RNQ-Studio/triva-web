@@ -99,9 +99,7 @@ class AppraisalValuationEngine
             : 1.0;
         $confidence = $this->confidence($count, $dispersion);
         $adjustments = $this->adjustments($appraisal);
-        $deduction = collect($adjustments)->sum(
-            fn (array $adjustment): float => (float) $adjustment['percentage'],
-        );
+        $deduction = $this->deduction($adjustments);
 
         if ($marketLow !== null && $marketMid !== null && $marketHigh !== null) {
             $marketLow = $this->roundPrice($marketLow);
@@ -207,14 +205,13 @@ class AppraisalValuationEngine
         array $decision,
         array $evidence,
     ): array {
+        $appraisal->loadMissing('vehicle');
         $marketLow = $this->roundPrice($decision['market_low']);
         $marketMid = $this->roundPrice($decision['market_mid']);
         $marketHigh = $this->roundPrice($decision['market_high']);
         $marketMid = max($marketLow, min($marketMid, $marketHigh));
         $adjustments = $this->adjustments($appraisal);
-        $deduction = collect($adjustments)->sum(
-            fn (array $adjustment): float => (float) $adjustment['percentage'],
-        );
+        $deduction = $this->deduction($adjustments);
         $tradeInLow = $this->roundPrice((int) round(
             $marketLow * (1 - ($deduction / 100)),
         ));
@@ -437,6 +434,14 @@ class AppraisalValuationEngine
             'label' => 'Margin dan biaya proses trade-in',
             'percentage' => (float) config('appraisal.market_data.dealer_margin_percent'),
         ]];
+        $marketCorrection = $this->marketCorrectionPercent($appraisal);
+        if ($marketCorrection > 0.0) {
+            $adjustments[] = [
+                'code' => 'market_correction',
+                'label' => 'Penyesuaian harga pasar Auto2000',
+                'percentage' => $marketCorrection,
+            ];
+        }
         $conditionAdjustment = round((90 - $appraisal->condition_percentage) * 0.15, 2);
         if ($conditionAdjustment !== 0.0) {
             $adjustments[] = [
@@ -463,6 +468,40 @@ class AppraisalValuationEngine
         }
 
         return $adjustments;
+    }
+
+    /**
+     * Menjumlahkan seluruh potongan lalu menahannya pada batas atas konfigurasi
+     * supaya tumpukan penalti tidak menghasilkan penawaran yang tidak wajar.
+     *
+     * @param  list<array<string, mixed>>  $adjustments
+     */
+    private function deduction(array $adjustments): float
+    {
+        $total = collect($adjustments)->sum(
+            fn (array $adjustment): float => (float) $adjustment['percentage'],
+        );
+
+        return min(
+            (float) $total,
+            (float) config('appraisal.market_data.maximum_total_deduction_percent'),
+        );
+    }
+
+    /**
+     * Koreksi harga pasar yang diminta cabang: 10% untuk seluruh unit dan 20%
+     * untuk unit diesel, karena harga diesel paling jauh selisihnya dari
+     * penawaran nyata OLX.
+     */
+    private function marketCorrectionPercent(Appraisal $appraisal): float
+    {
+        $isDiesel = $this->normalize((string) ($appraisal->vehicle?->fuel_type ?? '')) === 'diesel';
+
+        return (float) config(
+            $isDiesel
+                ? 'appraisal.market_data.diesel_market_correction_percent'
+                : 'appraisal.market_data.market_correction_percent',
+        );
     }
 
     private function roundPrice(int $price): int
