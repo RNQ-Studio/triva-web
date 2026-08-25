@@ -387,3 +387,8 @@ vendor/bin/phpunit
 
 > [!TIP]
 > **Catatan Keamanan Produksi:** Untuk lingkungan production, sangat direkomendasikan menggunakan pengguna PostgreSQL khusus dengan hak akses terbatas (*least-privilege*), bukan akun administrator database default `postgres`.
+
+
+Akses ke server : 
+ssh -i ~/Documents/Work/sshkey/manahpro root@199.180.131.115
+Ada di : /var/www/triva-web/
