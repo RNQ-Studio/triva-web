@@ -153,6 +153,10 @@ Route::prefix('v1')->group(function (): void {
                 ->middleware('throttle:60,1');
             Route::get('availability', [ToyotaServiceController::class, 'availability'])
                 ->middleware('throttle:60,1');
+            Route::get(
+                'maintenance-estimate',
+                [ToyotaServiceController::class, 'maintenanceEstimate'],
+            )->middleware('throttle:60,1');
             Route::get('bookings', [ToyotaServiceController::class, 'index']);
             Route::post('bookings', [ToyotaServiceController::class, 'store'])
                 ->middleware('throttle:toyota-service-booking-submission');

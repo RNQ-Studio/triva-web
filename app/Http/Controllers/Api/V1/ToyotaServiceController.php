@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\AcceptToyotaServiceAlternativeRequest;
 use App\Http\Requests\Api\V1\CancelToyotaServiceBookingRequest;
 use App\Http\Requests\Api\V1\ListToyotaServiceBookingsRequest;
+use App\Http\Requests\Api\V1\MaintenanceEstimateRequest;
 use App\Http\Requests\Api\V1\RejectToyotaServiceAlternativeRequest;
 use App\Http\Requests\Api\V1\RescheduleToyotaServiceBookingRequest;
 use App\Http\Requests\Api\V1\StoreToyotaServiceBookingRequest;
@@ -19,6 +20,7 @@ use App\Models\ToyotaServiceLocation;
 use App\Models\ToyotaServiceType;
 use App\Models\ToyotaThsCoverage;
 use App\Models\User;
+use App\Services\ToyotaMaintenanceEstimateService;
 use App\Services\ToyotaServiceAvailabilityService;
 use App\Services\ToyotaServiceBookingCreationService;
 use App\Services\ToyotaServiceBookingService;
@@ -36,6 +38,26 @@ class ToyotaServiceController extends Controller
         private readonly ToyotaServiceBookingCreationService $bookingCreationService,
         private readonly ToyotaServiceBookingService $bookingService,
     ) {}
+
+    /**
+     * Simulasi biaya servis berkala berdasarkan paket reguler cabang.
+     *
+     * Diminta notulensi 19 Agustus 2026 agar pelanggan tahu perkiraan biaya
+     * sebelum memutuskan booking.
+     */
+    public function maintenanceEstimate(
+        MaintenanceEstimateRequest $request,
+        ToyotaMaintenanceEstimateService $estimates,
+    ): JsonResponse {
+        return ApiResponse::success(
+            $estimates->estimate(
+                $request->filled('vehicle_model')
+                    ? $request->string('vehicle_model')->toString()
+                    : null,
+                $request->filled('mileage') ? $request->integer('mileage') : null,
+            ),
+        );
+    }
 
     public function options(Request $request): JsonResponse
     {
