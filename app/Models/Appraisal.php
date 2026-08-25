@@ -29,6 +29,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $service_history
  * @property string|null $ownership
  * @property int $condition_percentage
+ * @property string|null $condition_grade
  * @property string|null $engine_condition
  * @property string|null $tyre_condition
  * @property Carbon|null $service_consent_at
@@ -63,6 +64,7 @@ class Appraisal extends Model
         'service_history',
         'ownership',
         'condition_percentage',
+        'condition_grade',
         'engine_condition',
         'tyre_condition',
         'service_consent_at',
@@ -171,7 +173,7 @@ class Appraisal extends Model
             $this->major_accident_history,
             $this->service_history,
             $this->ownership,
-            $this->condition_percentage,
+            $this->condition_grade,
             $this->engine_condition,
             $this->tyre_condition,
         ])->every(fn (mixed $value): bool => filled($value));

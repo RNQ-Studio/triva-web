@@ -201,6 +201,7 @@ class AppraisalApiTest extends TestCase
         )
             ->assertOk()
             ->assertJsonPath('data.condition.condition_percentage', 90)
+            ->assertJsonPath('data.condition.condition_grade', 'b')
             ->assertJsonPath('data.condition.engine_condition', 'normal')
             ->assertJsonPath('data.condition.tyre_condition', 'normal');
 
@@ -470,6 +471,7 @@ class AppraisalApiTest extends TestCase
             'service_history' => 'complete',
             'ownership' => 'first',
             'condition_percentage' => 90,
+            'condition_grade' => 'b',
             'engine_condition' => 'normal',
             'tyre_condition' => 'normal',
         ];

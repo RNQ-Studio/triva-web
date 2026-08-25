@@ -41,6 +41,18 @@ return [
         ),
 
         /*
+         * Potongan per grade kondisi mengikuti tier OLX (A-D). OLX mencatat
+         * unit pelanggan paling sering keluar di grade C dan D, dan itu yang
+         * paling menentukan selisih harga.
+         */
+        'condition_grade_percent' => [
+            'a' => (float) env('APPRAISAL_CONDITION_GRADE_A_PERCENT', 0),
+            'b' => (float) env('APPRAISAL_CONDITION_GRADE_B_PERCENT', 2),
+            'c' => (float) env('APPRAISAL_CONDITION_GRADE_C_PERCENT', 5),
+            'd' => (float) env('APPRAISAL_CONDITION_GRADE_D_PERCENT', 9),
+        ],
+
+        /*
          * Batas atas seluruh potongan yang menumpuk. Tanpa batas ini, unit
          * diesel bekas banjir sekaligus tabrakan berat bisa terpotong hampir
          * 60% dan menghasilkan penawaran yang tidak masuk akal.

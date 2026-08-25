@@ -151,6 +151,36 @@ class AppraisalValuationEngineTest extends TestCase
         self::assertLessThan($healthy['trade_in_high'], $result['trade_in_high']);
     }
 
+    public function test_lower_condition_grades_cut_deeper_into_the_offer(): void
+    {
+        $engine = app(AppraisalValuationEngine::class);
+        $listings = $this->comparableListings(fuelType: 'gasoline');
+        $offers = [];
+
+        foreach (['a', 'b', 'c', 'd'] as $grade) {
+            $appraisal = $this->appraisal(fuelType: 'gasoline');
+            $appraisal->condition_grade = $grade;
+            $offers[$grade] = $engine->estimate($appraisal, $listings)['trade_in_low'];
+        }
+
+        self::assertGreaterThan($offers['b'], $offers['a']);
+        self::assertGreaterThan($offers['c'], $offers['b']);
+        self::assertGreaterThan($offers['d'], $offers['c']);
+    }
+
+    public function test_an_appraisal_without_a_grade_is_not_penalised(): void
+    {
+        $appraisal = $this->appraisal(fuelType: 'gasoline');
+        $appraisal->condition_grade = null;
+
+        $result = app(AppraisalValuationEngine::class)->estimate(
+            $appraisal,
+            $this->comparableListings(fuelType: 'gasoline'),
+        );
+
+        self::assertNull(collect($result['adjustments'])->firstWhere('code', 'condition_grade'));
+    }
+
     private function appraisal(string $fuelType): Appraisal
     {
         $vehicle = new Vehicle([
@@ -170,6 +200,7 @@ class AppraisalValuationEngineTest extends TestCase
             'service_history' => 'complete',
             'ownership' => 'first',
             'condition_percentage' => 90,
+            'condition_grade' => 'a',
             'engine_condition' => 'normal',
             'tyre_condition' => 'normal',
         ]);

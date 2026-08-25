@@ -434,6 +434,14 @@ class AppraisalValuationEngine
             'label' => 'Margin dan biaya proses trade-in',
             'percentage' => (float) config('appraisal.market_data.dealer_margin_percent'),
         ]];
+        $gradePercent = $this->conditionGradePercent($appraisal);
+        if ($gradePercent > 0.0) {
+            $adjustments[] = [
+                'code' => 'condition_grade',
+                'label' => 'Grade kondisi '.strtoupper((string) $appraisal->condition_grade),
+                'percentage' => $gradePercent,
+            ];
+        }
         $marketCorrection = $this->marketCorrectionPercent($appraisal);
         if ($marketCorrection > 0.0) {
             $adjustments[] = [
@@ -488,6 +496,17 @@ class AppraisalValuationEngine
             (float) $total,
             (float) config('appraisal.market_data.maximum_total_deduction_percent'),
         );
+    }
+
+    /**
+     * Potongan mengikuti tier kondisi OLX. Grade yang belum diisi -- appraisal
+     * lama sebelum pertanyaan ini ada -- tidak dipotong sama sekali.
+     */
+    private function conditionGradePercent(Appraisal $appraisal): float
+    {
+        $grade = strtolower((string) ($appraisal->condition_grade ?? ''));
+
+        return (float) (config('appraisal.market_data.condition_grade_percent')[$grade] ?? 0.0);
     }
 
     /**

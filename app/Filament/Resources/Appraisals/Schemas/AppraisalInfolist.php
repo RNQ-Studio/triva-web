@@ -51,6 +51,10 @@ class AppraisalInfolist
                     TextEntry::make('condition_percentage')
                         ->label('Kondisi saat ini')
                         ->suffix('%'),
+                    TextEntry::make('condition_grade')
+                        ->label('Grade kondisi')
+                        ->placeholder('Belum diisi')
+                        ->formatStateUsing(fn (string $state): string => 'Grade '.strtoupper($state)),
                     TextEntry::make('engine_condition')
                         ->label('Kondisi mesin')
                         ->placeholder('Belum diisi')
