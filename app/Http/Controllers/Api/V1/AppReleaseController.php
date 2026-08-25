@@ -34,10 +34,6 @@ class AppReleaseController extends Controller
 
     public function store(StoreAppReleaseRequest $request): JsonResponse
     {
-        if (! $this->hasValidUploadKey($request)) {
-            return ApiResponse::error('Kunci unggah rilis tidak valid.', 403);
-        }
-
         $platform = $this->normalizePlatform($request->input('platform'));
         $versionCode = (int) $request->integer('version_code');
         $versionName = trim((string) $request->input('version_name'));
@@ -221,21 +217,5 @@ class AppReleaseController extends Controller
         $value = trim((string) ($value ?? ''));
 
         return $value === '' ? null : $value;
-    }
-
-    /**
-     * Cocokkan header `X-App-Release-Key` dengan konfigurasi secara
-     * timing-safe. Kunci kosong mematikan endpoint sepenuhnya.
-     */
-    private function hasValidUploadKey(Request $request): bool
-    {
-        $configured = (string) config('app_update.upload_key', '');
-        if ($configured === '') {
-            return false;
-        }
-
-        $provided = (string) $request->header('X-App-Release-Key', '');
-
-        return $provided !== '' && hash_equals($configured, $provided);
     }
 }

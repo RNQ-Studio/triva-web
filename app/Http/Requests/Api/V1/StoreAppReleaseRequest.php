@@ -7,12 +7,24 @@ use Illuminate\Foundation\Http\FormRequest;
 class StoreAppReleaseRequest extends FormRequest
 {
     /**
-     * Otorisasi dipegang controller lewat header `X-App-Release-Key`; request
-     * ini hanya bertugas memvalidasi bentuk payload.
+     * Cocokkan header `X-App-Release-Key` dengan konfigurasi secara
+     * timing-safe. Kunci kosong mematikan endpoint sepenuhnya, jadi tidak ada
+     * bypass tak sengaja sebelum kunci di-set di server.
+     *
+     * Pemeriksaan ini sengaja berada di `authorize()`, bukan di controller,
+     * supaya pemanggil tanpa kunci ditolak sebelum validasi — kalau tidak,
+     * mereka menerima 422 yang membocorkan bentuk payload yang diharapkan.
      */
     public function authorize(): bool
     {
-        return true;
+        $configured = (string) config('app_update.upload_key', '');
+        if ($configured === '') {
+            return false;
+        }
+
+        $provided = (string) $this->header('X-App-Release-Key', '');
+
+        return $provided !== '' && hash_equals($configured, $provided);
     }
 
     public function rules(): array

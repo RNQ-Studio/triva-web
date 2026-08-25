@@ -35,6 +35,15 @@ class AppReleaseApiTest extends TestCase
         $this->assertDatabaseCount('app_releases', 0);
     }
 
+    public function test_a_missing_key_is_refused_before_the_payload_is_validated(): void
+    {
+        // Tanpa berkas dan tanpa version code: kalau validasi sempat jalan
+        // lebih dulu, pemanggil menerima 422 yang membocorkan bentuk payload.
+        $response = $this->postJson('/api/v1/app/releases', []);
+
+        $response->assertStatus(403);
+    }
+
     public function test_upload_is_disabled_entirely_when_no_key_is_configured(): void
     {
         config(['app_update.upload_key' => '']);
