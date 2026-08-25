@@ -37,6 +37,9 @@ class AppConfigSeeder extends Seeder
             ['key' => 'tos_url', 'value' => '', 'type' => 'string', 'description' => 'Terms of Service URL'],
             ['key' => 'privacy_url', 'value' => '', 'type' => 'string', 'description' => 'Privacy Policy URL'],
             ['key' => 'support_email', 'value' => '', 'type' => 'string', 'description' => 'Support contact email'],
+            ['key' => 'whatsapp_toyota_service', 'value' => '6285713112000', 'type' => 'string', 'description' => 'Nomor WhatsApp booking servis Toyota dan cek SSC Auto2000 Kertajaya'],
+            ['key' => 'whatsapp_otoxpert', 'value' => '6281511060290', 'type' => 'string', 'description' => 'Nomor WhatsApp booking OtoXpert'],
+            ['key' => 'whatsapp_body_paint', 'value' => '6285713112000', 'type' => 'string', 'description' => 'Nomor WhatsApp PIC Body & Paint Auto2000 Kertajaya'],
         ];
 
         foreach ($configs as $config) {
