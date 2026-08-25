@@ -63,6 +63,27 @@ return [
         ),
         'rounding' => (int) env('APPRAISAL_PRICE_ROUNDING', 500_000),
     ],
+    /*
+     * Fallback depresiasi untuk unit yang belum pernah dijual bekas -- mobil
+     * listrik atau model yang baru rilis. Pertanyaan Bp. Iyan (20 Agustus
+     * 2026) menjawab kasus ini dengan "menggunakan data depresiasi (yang
+     * penting harga muncul dulu)". Dasar harganya adalah OTR unit baru pada
+     * katalog kredit, jadi angka ini hanya terbit bila OTR-nya diketahui.
+     */
+    'depreciation' => [
+        'enabled' => filter_var(
+            env('APPRAISAL_DEPRECIATION_FALLBACK_ENABLED', true),
+            FILTER_VALIDATE_BOOL,
+        ),
+        'first_year_percent' => (float) env('APPRAISAL_DEPRECIATION_FIRST_YEAR_PERCENT', 18),
+        'annual_percent' => (float) env('APPRAISAL_DEPRECIATION_ANNUAL_PERCENT', 10),
+        'minimum_retained_percent' => (float) env(
+            'APPRAISAL_DEPRECIATION_MINIMUM_RETAINED_PERCENT',
+            15,
+        ),
+        'spread_percent' => (float) env('APPRAISAL_DEPRECIATION_SPREAD_PERCENT', 5),
+    ],
+
     'ai' => [
         'enabled' => filter_var(
             env('APPRAISAL_AI_FALLBACK_ENABLED', true),

@@ -159,6 +159,9 @@ class AppraisalAiFallbackTest extends TestCase
 
     public function test_invalid_ai_price_range_is_rejected_and_completion_failure_is_notified(): void
     {
+        // Uji ini menyoal kegagalan jalur AI, jadi fallback depresiasi
+        // dimatikan supaya tidak ikut menerbitkan harga.
+        config(['appraisal.depreciation.enabled' => false]);
         $this->activateSource('olx_approved_html');
         $this->activateSource('openai_price_decision');
         Http::fake([
@@ -234,6 +237,9 @@ class AppraisalAiFallbackTest extends TestCase
 
     public function test_missing_openai_configuration_marks_processing_failed(): void
     {
+        // Uji ini menyoal kegagalan jalur AI, jadi fallback depresiasi
+        // dimatikan supaya tidak ikut menerbitkan harga.
+        config(['appraisal.depreciation.enabled' => false]);
         $this->activateSource('olx_approved_html');
         $this->activateSource('openai_price_decision');
         config(['appraisal.ai.openai.api_key' => null]);

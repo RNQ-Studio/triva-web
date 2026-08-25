@@ -11,6 +11,7 @@ use App\Models\Appraisal;
 use App\Models\AppraisalMarketComparable;
 use App\Models\AppraisalMarketEstimate;
 use App\Models\AppraisalStatusHistory;
+use App\Models\CreditProgram;
 use App\Models\MarketDataSource;
 use App\Models\User;
 use App\Services\MarketData\OlxApprovedHtmlProvider;
@@ -19,6 +20,7 @@ use App\Support\Enums\AppraisalConfidence;
 use App\Support\Enums\AppraisalMarketEstimateStatus;
 use App\Support\Enums\AppraisalStatus;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Throwable;
 
 class AppraisalMarketDataService
@@ -160,6 +162,35 @@ class AppraisalMarketDataService
             }
         }
 
+        $depreciationAudit = ['attempted' => false, 'status' => 'not_needed'];
+        // Depresiasi hanya menutup kasus "belum pernah ada yang menjual", bukan
+        // gangguan sementara provider. Kegagalan yang masih bisa diulang tetap
+        // dilempar supaya antrean mencoba lagi dengan data pasar sungguhan.
+        if (
+            $valuation['status'] !== AppraisalMarketEstimateStatus::Ready
+            && $retryableException === null
+        ) {
+            $newVehiclePrice = $this->newVehiclePrice($appraisal);
+            $depreciationAudit['attempted'] = true;
+            if (
+                ! (bool) config('appraisal.depreciation.enabled')
+            ) {
+                $depreciationAudit['status'] = 'disabled';
+            } elseif ($newVehiclePrice === null) {
+                // Tanpa harga unit baru tidak ada dasar depresiasi. Mengarang
+                // angka di sini lebih buruk daripada mengatakan data belum
+                // memadai.
+                $depreciationAudit['status'] = 'no_new_vehicle_price';
+            } else {
+                $depreciationAudit['status'] = 'completed';
+                $valuation = $this->engine->estimateFromDepreciation(
+                    $appraisal,
+                    $newVehiclePrice,
+                    $valuation,
+                );
+            }
+        }
+
         if (
             $valuation['status'] !== AppraisalMarketEstimateStatus::Ready
             && $retryableException !== null
@@ -170,6 +201,7 @@ class AppraisalMarketDataService
             );
         }
         $valuation['calculation']['ai_fallback'] = $fallbackAudit;
+        $valuation['calculation']['depreciation_fallback'] = $depreciationAudit;
 
         return $this->persist($appraisal, $valuation, $providerCodes, $fingerprint);
     }
@@ -259,6 +291,39 @@ class AppraisalMarketDataService
         }
 
         return $estimate;
+    }
+
+    /**
+     * Harga unit baru yang sepadan, diambil dari katalog kredit yang berlaku.
+     * Kecocokan varian didahulukan; bila tidak ada, model saja sudah cukup
+     * sebagai dasar depresiasi.
+     */
+    private function newVehiclePrice(Appraisal $appraisal): ?int
+    {
+        $vehicle = $appraisal->vehicle;
+        if ($vehicle === null) {
+            return null;
+        }
+
+        $programs = CreditProgram::query()
+            ->effective()
+            ->where('vehicle_model', $vehicle->model)
+            ->get(['vehicle_variant', 'otr_price']);
+        if ($programs->isEmpty()) {
+            return null;
+        }
+
+        $variantMatch = $programs->first(
+            fn (CreditProgram $program): bool => $this->normalizeText($program->vehicle_variant)
+                === $this->normalizeText($vehicle->variant),
+        );
+
+        return (int) ($variantMatch?->otr_price ?? $programs->min('otr_price'));
+    }
+
+    private function normalizeText(string $value): string
+    {
+        return (string) Str::of($value)->ascii()->lower()->replaceMatches('/[^a-z0-9]+/', '');
     }
 
     /**

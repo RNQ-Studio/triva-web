@@ -47,15 +47,16 @@ class AppraisalAutomaticResultPublisher
             $comparables = $lockedEstimate->comparables
                 ->whereNull('exclusion_reason')
                 ->values();
+            $algorithm = data_get($lockedEstimate->calculation, 'algorithm');
             $isAiPriceDecision = in_array(
                 'openai_price_decision',
                 $lockedEstimate->provider_codes ?? [],
                 true,
-            ) && data_get(
-                $lockedEstimate->calculation,
-                'algorithm',
-            ) === 'openai_price_decision_with_deterministic_trade_in_v1';
-            if ($comparables->isEmpty() && ! $isAiPriceDecision) {
+            ) && $algorithm === 'openai_price_decision_with_deterministic_trade_in_v1';
+            // Estimasi depresiasi memang tidak punya pembanding: dasarnya harga
+            // unit baru, bukan pengamatan pasar bekas.
+            $isDepreciation = $algorithm === 'depreciation_fallback_v1';
+            if ($comparables->isEmpty() && ! $isAiPriceDecision && ! $isDepreciation) {
                 throw new AppraisalConflictException(
                     'Rekomendasi engine tidak memiliki pembanding valid.',
                 );
@@ -77,9 +78,11 @@ class AppraisalAutomaticResultPublisher
                     (int) config('appraisal.market_data.result_valid_days'),
                 ),
                 'requires_physical_inspection' => true,
-                'disclaimer' => $isAiPriceDecision
-                    ? 'Hasil merupakan keputusan harga otomatis berbasis spesifikasi kendaraan dan data OLX yang tersedia. Nilai ini indikatif, bukan penawaran final, dan memerlukan inspeksi fisik.'
-                    : 'Hasil merupakan indikasi berdasarkan data listing pasar dan belum merupakan penawaran final. Nilai final memerlukan inspeksi fisik.',
+                'disclaimer' => match (true) {
+                    $isDepreciation => 'Belum ada data penjualan bekas untuk unit ini, sehingga nilai dihitung dari depresiasi harga unit baru. Nilai ini indikatif, bukan penawaran final, dan memerlukan inspeksi fisik.',
+                    $isAiPriceDecision => 'Hasil merupakan keputusan harga otomatis berbasis spesifikasi kendaraan dan data OLX yang tersedia. Nilai ini indikatif, bukan penawaran final, dan memerlukan inspeksi fisik.',
+                    default => 'Hasil merupakan indikasi berdasarkan data listing pasar dan belum merupakan penawaran final. Nilai final memerlukan inspeksi fisik.',
+                },
                 'adjustments' => $lockedEstimate->adjustments ?? [],
                 'publication_type' => 'automatic_engine',
                 'published_by' => null,
@@ -118,9 +121,11 @@ class AppraisalAutomaticResultPublisher
             $history = new AppraisalStatusHistory([
                 'status' => AppraisalStatus::ResultReady,
                 'title' => 'Hasil appraisal tersedia',
-                'description' => $isAiPriceDecision
-                    ? 'OLX belum menyediakan cukup pembanding, sehingga OpenAI membuat keputusan harga dari spesifikasi yang dikirim. Hasil siap dilihat.'
-                    : 'Data OLX telah diproses otomatis. Hasil siap dilihat.',
+                'description' => match (true) {
+                    $isDepreciation => 'Belum ada data penjualan bekas untuk unit ini, sehingga nilai dihitung dari depresiasi harga unit baru. Hasil siap dilihat.',
+                    $isAiPriceDecision => 'OLX belum menyediakan cukup pembanding, sehingga OpenAI membuat keputusan harga dari spesifikasi yang dikirim. Hasil siap dilihat.',
+                    default => 'Data OLX telah diproses otomatis. Hasil siap dilihat.',
+                },
                 'user_visible' => true,
             ]);
             $history->appraisal()->associate($locked);

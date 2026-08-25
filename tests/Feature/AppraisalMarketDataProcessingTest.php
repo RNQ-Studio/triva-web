@@ -129,7 +129,10 @@ class AppraisalMarketDataProcessingTest extends TestCase
 
     public function test_job_does_not_retry_a_permanent_insufficient_estimate(): void
     {
-        config(['appraisal.ai.enabled' => false]);
+        config([
+            'appraisal.ai.enabled' => false,
+            'appraisal.depreciation.enabled' => false,
+        ]);
         Http::fake([
             'https://www.olx.co.id/*' => Http::response(
                 $this->olxCards(2),

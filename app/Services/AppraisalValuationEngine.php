@@ -256,6 +256,95 @@ class AppraisalValuationEngine
         ];
     }
 
+    /**
+     * Menyusun estimasi dari depresiasi harga unit baru, untuk unit yang belum
+     * punya pembanding bekas sama sekali.
+     *
+     * Pertanyaan Bp. Iyan pada 20 Agustus 2026 menyangkut kasus ini: mobil
+     * listrik yang belum pernah ada yang menjual. Jawabannya memakai data
+     * depresiasi supaya harga tetap muncul. Nilainya sengaja ditandai
+     * berkeyakinan rendah karena bukan hasil pengamatan pasar.
+     *
+     * @param  array{
+     *     status: AppraisalMarketEstimateStatus,
+     *     comparable_count: int,
+     *     comparables: list<array<string, mixed>>,
+     *     calculation: array<string, mixed>
+     * }  $evidence
+     * @return array<string, mixed>
+     */
+    public function estimateFromDepreciation(
+        Appraisal $appraisal,
+        int $newVehiclePrice,
+        array $evidence,
+    ): array {
+        $appraisal->loadMissing('vehicle');
+        $retained = $this->retainedValueRatio($appraisal->vehicle?->year);
+        $marketMid = $this->roundPrice((int) round($newVehiclePrice * $retained));
+        $spread = (float) config('appraisal.depreciation.spread_percent') / 100;
+        $marketLow = $this->roundPrice((int) round($marketMid * (1 - $spread)));
+        $marketHigh = $this->roundPrice((int) round($marketMid * (1 + $spread)));
+        $adjustments = $this->adjustments($appraisal);
+        $deduction = $this->deduction($adjustments);
+        $tradeInLow = $this->roundPrice(
+            (int) round($marketLow * (1 - ($deduction / 100))),
+        );
+        $tradeInHigh = $this->roundPrice((int) round(
+            $marketMid * (1 - (max(3.0, $deduction - 1.5) / 100)),
+        ));
+        $tradeInHigh = min($tradeInHigh, $marketMid);
+        $tradeInLow = min($tradeInLow, $tradeInHigh);
+
+        return [
+            'status' => AppraisalMarketEstimateStatus::Ready,
+            'market_low' => $marketLow,
+            'market_mid' => $marketMid,
+            'market_high' => $marketHigh,
+            'trade_in_low' => $tradeInLow,
+            'trade_in_high' => $tradeInHigh,
+            'confidence' => AppraisalConfidence::Low,
+            'comparable_count' => $evidence['comparable_count'],
+            'data_as_of' => now(),
+            'adjustments' => $adjustments,
+            'calculation' => [
+                'algorithm' => 'depreciation_fallback_v1',
+                'fallback_reason' => 'no_market_evidence_available',
+                'new_vehicle_price' => $newVehiclePrice,
+                'vehicle_year' => $appraisal->vehicle?->year,
+                'retained_ratio' => round($retained, 4),
+                'first_year_percent' => (float) config(
+                    'appraisal.depreciation.first_year_percent',
+                ),
+                'annual_percent' => (float) config(
+                    'appraisal.depreciation.annual_percent',
+                ),
+                'minimum_retained_percent' => (float) config(
+                    'appraisal.depreciation.minimum_retained_percent',
+                ),
+                'olx_valid_comparable_count' => $evidence['comparable_count'],
+            ],
+            'comparables' => $evidence['comparables'],
+        ];
+    }
+
+    /**
+     * Tahun pertama menyusut paling dalam, lalu melandai. Hasilnya ditahan
+     * pada batas bawah supaya unit tua tidak pernah bernilai mendekati nol.
+     */
+    private function retainedValueRatio(?int $year): float
+    {
+        $age = $year === null ? 0 : max(0, (int) now('Asia/Jakarta')->year - $year);
+        $firstYear = (float) config('appraisal.depreciation.first_year_percent') / 100;
+        $annual = (float) config('appraisal.depreciation.annual_percent') / 100;
+        $minimum = (float) config('appraisal.depreciation.minimum_retained_percent') / 100;
+
+        $retained = $age === 0
+            ? 1.0
+            : (1 - $firstYear) * ((1 - $annual) ** ($age - 1));
+
+        return max($minimum, $retained);
+    }
+
     /** @param array<string, mixed> $listing */
     private function similarity(
         Appraisal $appraisal,

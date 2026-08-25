@@ -421,7 +421,10 @@ class AppraisalApiTest extends TestCase
     public function test_automatic_result_is_not_published_with_insufficient_comparables(): void
     {
         $appraisal = $this->submittedAppraisal();
-        config(['appraisal.ai.enabled' => false]);
+        config([
+            'appraisal.ai.enabled' => false,
+            'appraisal.depreciation.enabled' => false,
+        ]);
         Http::fake([
             'https://www.olx.co.id/*' => Http::response(
                 $this->olxCards(2),
