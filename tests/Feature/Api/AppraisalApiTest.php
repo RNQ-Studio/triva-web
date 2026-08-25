@@ -374,6 +374,50 @@ class AppraisalApiTest extends TestCase
             );
     }
 
+    public function test_rejecting_a_price_requires_and_records_the_expected_price(): void
+    {
+        Passport::actingAs($this->customer);
+        $appraisal = $this->submittedAppraisal();
+        Http::fake([
+            'https://www.olx.co.id/*' => Http::response(
+                $this->olxCards(8),
+                200,
+                ['Content-Type' => 'text/html'],
+            ),
+        ]);
+        app(AppraisalMarketDataService::class)->process($appraisal->refresh());
+
+        $this->postJson("/api/v1/appraisals/{$appraisal->id}/decision", [
+            'decision' => AppraisalDecision::Rejected->value,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['expected_price']);
+
+        $this->postJson("/api/v1/appraisals/{$appraisal->id}/decision", [
+            'decision' => AppraisalDecision::Rejected->value,
+            'expected_price' => 500,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['expected_price']);
+
+        $this->postJson("/api/v1/appraisals/{$appraisal->id}/decision", [
+            'decision' => AppraisalDecision::Rejected->value,
+            'expected_price' => 210_000_000,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.status', AppraisalStatus::RejectedByCustomer->value)
+            ->assertJsonPath('data.expected_price', 210_000_000);
+
+        $appraisal->refresh();
+        self::assertSame(210_000_000, $appraisal->expected_price);
+        self::assertNotNull($appraisal->expected_price_submitted_at);
+        self::assertTrue(
+            $appraisal->statusHistories()
+                ->where('description', 'like', '%210.000.000%')
+                ->exists(),
+        );
+    }
+
     public function test_automatic_result_is_not_published_with_insufficient_comparables(): void
     {
         $appraisal = $this->submittedAppraisal();

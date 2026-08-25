@@ -329,9 +329,13 @@ class AppraisalService
         return $this->loadCustomerRelations($appraisal->refresh());
     }
 
-    public function decide(Appraisal $appraisal, User $user, AppraisalDecision $decision): Appraisal
-    {
-        DB::transaction(function () use ($appraisal, $user, $decision): void {
+    public function decide(
+        Appraisal $appraisal,
+        User $user,
+        AppraisalDecision $decision,
+        ?int $expectedPrice = null,
+    ): Appraisal {
+        DB::transaction(function () use ($appraisal, $user, $decision, $expectedPrice): void {
             /** @var Appraisal $locked */
             $locked = Appraisal::query()->lockForUpdate()->findOrFail($appraisal->getKey());
 
@@ -355,6 +359,12 @@ class AppraisalService
                 'status' => $status,
                 'customer_decision' => $decision,
                 'customer_decided_at' => now(),
+                // Harapan harga hanya disimpan bersama penolakan; keputusan lain
+                // tidak boleh menghapus angka yang pernah dikirim pelanggan.
+                ...$expectedPrice === null ? [] : [
+                    'expected_price' => $expectedPrice,
+                    'expected_price_submitted_at' => now(),
+                ],
             ]);
 
             $this->history(
@@ -367,7 +377,11 @@ class AppraisalService
                 },
                 match ($decision) {
                     AppraisalDecision::Accepted => 'Nilai appraisal siap digunakan sebagai opsi DP.',
-                    AppraisalDecision::Rejected => 'Kendaraan siap dilanjutkan ke Estimasi Perbaikan BP.',
+                    AppraisalDecision::Rejected => $expectedPrice === null
+                        ? 'Kendaraan siap dilanjutkan ke Estimasi Perbaikan BP.'
+                        : 'Harapan harga pelanggan Rp '
+                            .number_format($expectedPrice, 0, ',', '.')
+                            .' tercatat untuk ditindaklanjuti.',
                     AppraisalDecision::Deferred => 'Hasil tetap tersedia di Aktivitas Saya.',
                 },
                 $user,

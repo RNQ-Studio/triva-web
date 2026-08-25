@@ -38,6 +38,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $submitted_at
  * @property Carbon|null $due_at
  * @property AppraisalDecision|null $customer_decision
+ * @property int|null $expected_price
+ * @property Carbon|null $expected_price_submitted_at
  * @property Carbon|null $customer_decided_at
  * @property Carbon|null $inspection_scheduled_at
  * @property string|null $inspection_notes
@@ -74,6 +76,8 @@ class Appraisal extends Model
         'due_at',
         'customer_decision',
         'customer_decided_at',
+        'expected_price',
+        'expected_price_submitted_at',
         'inspection_scheduled_at',
         'inspection_notes',
     ];
@@ -89,6 +93,8 @@ class Appraisal extends Model
             'submitted_at' => 'datetime',
             'due_at' => 'datetime',
             'customer_decided_at' => 'datetime',
+            'expected_price' => 'integer',
+            'expected_price_submitted_at' => 'datetime',
             'inspection_scheduled_at' => 'datetime',
         ];
     }

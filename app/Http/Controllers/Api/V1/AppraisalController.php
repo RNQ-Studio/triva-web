@@ -136,7 +136,12 @@ class AppraisalController extends Controller
         $decision = AppraisalDecision::from($request->string('decision')->toString());
 
         return ApiResponse::success(new AppraisalResource(
-            $this->appraisals->decide($appraisal, $user, $decision)
+            $this->appraisals->decide(
+                $appraisal,
+                $user,
+                $decision,
+                $request->integer('expected_price') ?: null,
+            )
         ), 'Keputusan berhasil disimpan.');
     }
 

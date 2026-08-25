@@ -45,6 +45,7 @@ class AppraisalResource extends JsonResource
                 fn () => new AppraisalResultResource($this->latestResult),
             ),
             'customer_decision' => $this->customer_decision?->value,
+            'expected_price' => $this->expected_price,
             'continuation' => $this->continuation(),
             'submitted_at' => $this->submitted_at?->toIso8601String(),
             'due_at' => $this->due_at?->toIso8601String(),

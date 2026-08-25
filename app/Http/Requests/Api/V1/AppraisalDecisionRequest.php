@@ -20,6 +20,15 @@ class AppraisalDecisionRequest extends FormRequest
     {
         return [
             'decision' => ['required', Rule::enum(AppraisalDecision::class)],
+            // Harapan harga hanya bermakna saat pelanggan menolak angka yang
+            // ditawarkan; batas atasnya menahan salah ketik nol berlebih.
+            'expected_price' => [
+                'nullable',
+                'required_if:decision,'.AppraisalDecision::Rejected->value,
+                'integer',
+                'min:1000000',
+                'max:100000000000',
+            ],
         ];
     }
 }

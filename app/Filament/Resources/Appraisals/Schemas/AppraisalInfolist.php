@@ -73,6 +73,17 @@ class AppraisalInfolist
                         }),
                     TextEntry::make('current_photos_count')->label('Foto saat ini')->suffix(' / 5'),
                 ]),
+            Section::make('Harapan harga pelanggan')
+                ->columns(2)
+                ->visible(fn (Appraisal $record): bool => $record->expected_price !== null)
+                ->schema([
+                    TextEntry::make('expected_price')
+                        ->label('Harga yang diharapkan')
+                        ->money('IDR'),
+                    TextEntry::make('expected_price_submitted_at')
+                        ->label('Dikirim pada')
+                        ->dateTime('d M Y H:i'),
+                ]),
             Section::make('Hasil terbaru')
                 ->columns(3)
                 ->visible(fn (Appraisal $record): bool => $record->latestResult !== null)
