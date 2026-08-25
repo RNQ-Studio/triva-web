@@ -22,9 +22,11 @@ class AppraisalDecisionRequest extends FormRequest
             'decision' => ['required', Rule::enum(AppraisalDecision::class)],
             // Harapan harga hanya bermakna saat pelanggan menolak angka yang
             // ditawarkan; batas atasnya menahan salah ketik nol berlebih.
+            // Tidak diwajibkan di sisi server karena pemasangan lama belum
+            // mengenal isian ini; aplikasi versi baru selalu menanyakannya
+            // sebelum mengirim penolakan.
             'expected_price' => [
                 'nullable',
-                'required_if:decision,'.AppraisalDecision::Rejected->value,
                 'integer',
                 'min:1000000',
                 'max:100000000000',

@@ -205,14 +205,20 @@ class AppraisalApiTest extends TestCase
             ->assertJsonPath('data.condition.engine_condition', 'normal')
             ->assertJsonPath('data.condition.tyre_condition', 'normal');
 
+        // Pemasangan lama belum mengenal tiga isian baru dan tidak bisa
+        // dipaksa memperbarui, jadi payload lamanya tetap diterima -- isiannya
+        // hanya tinggal kosong dan tidak memotong harga.
+        $legacy = $this->createDraft();
         $this->putJson(
-            "/api/v1/appraisals/{$appraisal->id}/vehicle-condition",
+            "/api/v1/appraisals/{$legacy->id}/vehicle-condition",
             collect($this->conditionPayload())
-                ->except(['engine_condition', 'tyre_condition'])
+                ->except(['condition_grade', 'engine_condition', 'tyre_condition'])
                 ->all(),
         )
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['engine_condition', 'tyre_condition']);
+            ->assertOk()
+            ->assertJsonPath('data.condition.condition_grade', null)
+            ->assertJsonPath('data.condition.engine_condition', null)
+            ->assertJsonPath('data.condition.tyre_condition', null);
 
         $this->putJson(
             "/api/v1/appraisals/{$appraisal->id}/vehicle-condition",
@@ -386,12 +392,6 @@ class AppraisalApiTest extends TestCase
             ),
         ]);
         app(AppraisalMarketDataService::class)->process($appraisal->refresh());
-
-        $this->postJson("/api/v1/appraisals/{$appraisal->id}/decision", [
-            'decision' => AppraisalDecision::Rejected->value,
-        ])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['expected_price']);
 
         $this->postJson("/api/v1/appraisals/{$appraisal->id}/decision", [
             'decision' => AppraisalDecision::Rejected->value,

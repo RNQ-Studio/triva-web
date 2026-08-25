@@ -23,9 +23,14 @@ class UpdateAppraisalConditionRequest extends FormRequest
             'major_accident_history' => ['required', Rule::in(['yes', 'no', 'unknown'])],
             'service_history' => ['required', Rule::in(['complete', 'partial', 'none', 'unknown'])],
             'ownership' => ['required', Rule::in(['first', 'second', 'more', 'unknown'])],
-            'condition_grade' => ['required', Rule::in(['a', 'b', 'c', 'd'])],
-            'engine_condition' => ['required', Rule::in(['normal', 'wet'])],
-            'tyre_condition' => ['required', Rule::in(['normal', 'damaged'])],
+            // Aplikasi tidak punya gerbang paksa-perbarui, sehingga pemasangan
+            // lama masih mengirim payload tanpa tiga isian ini. Nilainya
+            // diterima opsional -- aplikasi versi baru sendiri yang mewajibkan
+            // pelanggan mengisinya sebelum melanjutkan -- supaya pengguna lama
+            // tidak terjebak 422 di tengah alur appraisal.
+            'condition_grade' => ['sometimes', 'nullable', Rule::in(['a', 'b', 'c', 'd'])],
+            'engine_condition' => ['sometimes', 'nullable', Rule::in(['normal', 'wet'])],
+            'tyre_condition' => ['sometimes', 'nullable', Rule::in(['normal', 'damaged'])],
         ];
     }
 }
