@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OtoxpertController;
 use App\Http\Controllers\Api\V1\OtpController;
 use App\Http\Controllers\Api\V1\PasswordResetController;
+use App\Http\Controllers\Api\V1\PromotionController;
 use App\Http\Controllers\Api\V1\QuoteController;
 use App\Http\Controllers\Api\V1\RegionController;
 use App\Http\Controllers\Api\V1\TagController;
@@ -107,6 +108,10 @@ Route::prefix('v1')->group(function (): void {
             Route::post('phone/verify', [OtpController::class, 'verifyPhone']);
         });
     });
+
+    // Promo halaman depan terbuka untuk web dan landing page yang belum login.
+    Route::get('promotions', [PromotionController::class, 'index'])
+        ->middleware(['throttle:60,1', 'check.maintenance']);
 
     Route::apiResource('quotes', QuoteController::class);
 
