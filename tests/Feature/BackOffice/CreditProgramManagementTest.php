@@ -118,6 +118,43 @@ class CreditProgramManagementTest extends TestCase
         );
     }
 
+    public function test_csv_can_maintain_the_spekta_package_and_its_recommended_dp(): void
+    {
+        $path = $this->writeCsv([
+            $this->validRow([
+                'program_code' => 'SPEKTA-CSV',
+                'package_code' => 'spekta',
+                'recommended_dp_basis_points' => '2000',
+            ]),
+        ]);
+
+        $preview = app(CreditProgramCsvImportService::class)->preview($path);
+        self::assertSame([], $preview['errors']);
+
+        app(CreditProgramCsvImportService::class)->import($path, $this->admin);
+
+        $program = CreditProgram::query()
+            ->where('program_code', 'SPEKTA-CSV')
+            ->firstOrFail();
+        self::assertSame('spekta', $program->package_code);
+        self::assertSame(2000, $program->recommended_dp_basis_points);
+    }
+
+    public function test_a_recommended_dp_outside_the_program_range_is_rejected(): void
+    {
+        $path = $this->writeCsv([
+            $this->validRow(['recommended_dp_basis_points' => '9000']),
+        ]);
+
+        $preview = app(CreditProgramCsvImportService::class)->preview($path);
+
+        self::assertNotSame([], $preview['errors']);
+        self::assertStringContainsString(
+            'recommended dp basis points',
+            mb_strtolower(implode(' ', $preview['errors'])),
+        );
+    }
+
     public function test_csv_preview_reports_row_errors_without_writing(): void
     {
         $path = $this->writeCsv([
@@ -222,6 +259,8 @@ class CreditProgramManagementTest extends TestCase
             'effective_to' => '2026-08-31',
             'source_reference' => 'Dokumen program test.',
             'status' => 'approved',
+            'package_code' => '',
+            'recommended_dp_basis_points' => '',
             ...$overrides,
         ];
     }

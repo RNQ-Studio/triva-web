@@ -37,6 +37,10 @@ class CreditProgramCsvImportService
         'effective_to',
         'source_reference',
         'status',
+        // Ditambahkan setelah meeting 19 Agustus 2026 agar cabang bisa
+        // memelihara paket SPEKTA dan DP anjurannya lewat CSV yang sama.
+        'package_code',
+        'recommended_dp_basis_points',
     ];
 
     /**
@@ -269,6 +273,13 @@ class CreditProgramCsvImportService
                 'required',
                 Rule::enum(CreditProgramStatus::class),
             ],
+            'package_code' => ['nullable', 'string', 'max:30'],
+            'recommended_dp_basis_points' => [
+                'nullable',
+                'integer',
+                'gte:minimum_dp_basis_points',
+                'lte:maximum_dp_basis_points',
+            ],
         ];
     }
 
@@ -288,11 +299,13 @@ class CreditProgramCsvImportService
             'provision_fee',
             'upfront_insurance',
             'other_upfront_costs',
+            'recommended_dp_basis_points',
         ] as $field) {
             $row[$field] = $row[$field] === ''
                 ? null
                 : (int) $row[$field];
         }
+        $row['package_code'] = $row['package_code'] ?: null;
         $row['effective_to'] = $row['effective_to'] ?: null;
         $row['other_upfront_cost_label'] =
             $row['other_upfront_cost_label'] ?: null;
@@ -320,6 +333,8 @@ class CreditProgramCsvImportService
             'effective_to',
             'source_reference',
             'status',
+            'package_code',
+            'recommended_dp_basis_points',
         ])->merge([
             'formula_strategy' => 'flat_rate',
             'formula_version' => 'flat-v1',
