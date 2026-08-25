@@ -27,6 +27,8 @@ use Spatie\Activitylog\Traits\LogsActivity;
  * @property int|null $model_year
  * @property int $otr_price
  * @property int $approved_discount
+ * @property string|null $package_code
+ * @property int|null $recommended_dp_basis_points
  * @property int $minimum_dp_basis_points
  * @property int $maximum_dp_basis_points
  * @property list<array<string, int|string|null>> $tenor_options
@@ -56,6 +58,8 @@ class CreditProgram extends Model
         'model_year',
         'otr_price',
         'approved_discount',
+        'package_code',
+        'recommended_dp_basis_points',
         'minimum_dp_basis_points',
         'maximum_dp_basis_points',
         'tenor_options',
@@ -77,6 +81,7 @@ class CreditProgram extends Model
             'model_year' => 'integer',
             'otr_price' => 'integer',
             'approved_discount' => 'integer',
+            'recommended_dp_basis_points' => 'integer',
             'minimum_dp_basis_points' => 'integer',
             'maximum_dp_basis_points' => 'integer',
             'tenor_options' => 'array',

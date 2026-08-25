@@ -25,6 +25,13 @@ class CreditProgramResource extends JsonResource
                 'otr_price' => $this->otr_price,
                 'approved_discount' => $this->approved_discount,
             ],
+            'package_code' => $this->package_code,
+            'recommended_dp_basis_points' => $this->recommended_dp_basis_points,
+            // DP anjuran paket -- SPEKTA memakai 20% -- supaya aplikasi bisa
+            // langsung mengisikan nominalnya alih-alih memakai DP minimum.
+            'recommended_dp_amount' => $this->recommended_dp_basis_points === null
+                ? null
+                : $this->roundedUpPercentage($this->recommended_dp_basis_points),
             'minimum_dp_basis_points' => $this->minimum_dp_basis_points,
             'maximum_dp_basis_points' => $this->maximum_dp_basis_points,
             'minimum_dp_amount' => $this->roundedUpPercentage(

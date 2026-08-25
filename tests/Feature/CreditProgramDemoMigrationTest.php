@@ -38,7 +38,12 @@ class CreditProgramDemoMigrationTest extends TestCase
             ->where('program_code', 'TRIVA-DEMO-CREDIT')
             ->firstOrFail();
 
-        $this->assertDatabaseCount('credit_programs', 1);
+        $this->assertSame(
+            1,
+            CreditProgram::query()
+                ->where('program_code', 'TRIVA-DEMO-CREDIT')
+                ->count(),
+        );
         $this->assertSame(
             '00000000-0000-4000-8000-000000000401',
             $program->getKey(),
@@ -80,10 +85,11 @@ class CreditProgramDemoMigrationTest extends TestCase
             ->firstOrFail();
         Passport::actingAs(User::factory()->create());
 
-        $this->getJson('/api/v1/credit/programs')
-            ->assertOk()
-            ->assertJsonPath('data.0.id', $program->getKey())
-            ->assertJsonPath('data.0.is_demo', true);
+        $response = $this->getJson('/api/v1/credit/programs')->assertOk();
+        $listed = collect($response->json('data'))
+            ->firstWhere('id', $program->getKey());
+        self::assertNotNull($listed);
+        self::assertTrue($listed['is_demo']);
 
         $payload = [
             'program_id' => $program->getKey(),
