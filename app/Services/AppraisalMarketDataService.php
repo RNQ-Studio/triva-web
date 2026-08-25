@@ -32,6 +32,7 @@ class AppraisalMarketDataService
         private readonly AppraisalValuationEngine $engine,
         private readonly AppraisalAutomaticResultPublisher $resultPublisher,
         private readonly PushNotificationService $notifications,
+        private readonly AppraisalValuationFingerprint $fingerprints,
     ) {
         $this->providers = [$olx->code() => $olx];
     }
@@ -51,6 +52,17 @@ class AppraisalMarketDataService
             }
 
             return $existing->load('comparables');
+        }
+
+        $fingerprint = $this->fingerprints->for($appraisal);
+        $reusable = $this->reusableEstimate($appraisal, $fingerprint);
+        if ($reusable instanceof AppraisalMarketEstimate) {
+            return $this->persist(
+                $appraisal,
+                $this->valuationFrom($reusable),
+                $reusable->provider_codes ?? [],
+                $fingerprint,
+            );
         }
 
         $sources = MarketDataSource::query()
@@ -159,10 +171,28 @@ class AppraisalMarketDataService
         }
         $valuation['calculation']['ai_fallback'] = $fallbackAudit;
 
+        return $this->persist($appraisal, $valuation, $providerCodes, $fingerprint);
+    }
+
+    /**
+     * Menyimpan hasil penilaian sebagai estimasi baru lalu menerbitkan atau
+     * memberitahukan kegagalannya. Dipakai jalur perhitungan penuh maupun
+     * jalur pemakaian ulang hasil dengan sidik jari yang sama.
+     *
+     * @param  array<string, mixed>  $valuation
+     * @param  list<string>  $providerCodes
+     */
+    private function persist(
+        Appraisal $appraisal,
+        array $valuation,
+        array $providerCodes,
+        string $fingerprint,
+    ): AppraisalMarketEstimate {
         $estimate = DB::transaction(function () use (
             $appraisal,
             $valuation,
             $providerCodes,
+            $fingerprint,
         ): AppraisalMarketEstimate {
             /** @var Appraisal $locked */
             $locked = Appraisal::query()->lockForUpdate()->findOrFail($appraisal->getKey());
@@ -182,6 +212,7 @@ class AppraisalMarketDataService
                 'adjustments' => $valuation['adjustments'],
                 'calculation' => $valuation['calculation'],
                 'calculated_at' => now(),
+                'valuation_fingerprint' => $fingerprint,
             ]);
             $estimate->appraisal()->associate($locked);
             $estimate->save();
@@ -228,6 +259,85 @@ class AppraisalMarketDataService
         }
 
         return $estimate;
+    }
+
+    /**
+     * Mencari hasil penilaian yang sudah siap untuk kendaraan dan kondisi yang
+     * persis sama, milik appraisal mana pun, selama data pasarnya belum
+     * kedaluwarsa. Inilah yang membuat dua akun dengan isian identik menerima
+     * angka identik.
+     */
+    private function reusableEstimate(
+        Appraisal $appraisal,
+        string $fingerprint,
+    ): ?AppraisalMarketEstimate {
+        return AppraisalMarketEstimate::query()
+            ->where('valuation_fingerprint', $fingerprint)
+            ->where('status', AppraisalMarketEstimateStatus::Ready)
+            ->where('appraisal_id', '!=', $appraisal->getKey())
+            ->where('calculated_at', '>=', now()->subDays(
+                (int) config('appraisal.market_data.result_valid_days'),
+            ))
+            ->with('comparables')
+            ->latest('calculated_at')
+            ->first();
+    }
+
+    /**
+     * Menyalin angka estimasi yang dipakai ulang ke bentuk kontrak valuation,
+     * termasuk pembandingnya, karena penerbitan hasil menolak estimasi tanpa
+     * pembanding valid.
+     *
+     * @return array<string, mixed>
+     */
+    private function valuationFrom(AppraisalMarketEstimate $estimate): array
+    {
+        $calculation = $estimate->calculation ?? [];
+        $calculation['reused_from'] = [
+            'market_estimate_id' => $estimate->getKey(),
+            'appraisal_id' => $estimate->appraisal_id,
+            'calculated_at' => $estimate->calculated_at->toIso8601String(),
+            'reason' => 'identical_vehicle_and_condition_fingerprint',
+        ];
+
+        return [
+            'status' => $estimate->status,
+            'market_low' => $estimate->market_low,
+            'market_mid' => $estimate->market_mid,
+            'market_high' => $estimate->market_high,
+            'trade_in_low' => $estimate->trade_in_low,
+            'trade_in_high' => $estimate->trade_in_high,
+            'confidence' => $estimate->confidence,
+            'comparable_count' => $estimate->comparable_count,
+            'data_as_of' => $estimate->data_as_of,
+            'adjustments' => $estimate->adjustments ?? [],
+            'calculation' => $calculation,
+            'comparables' => $estimate->comparables
+                ->map(fn (AppraisalMarketComparable $comparable): array => [
+                    'market_data_source_id' => $comparable->market_data_source_id,
+                    'source_code' => $comparable->source_code,
+                    'external_reference_hash' => $comparable->external_reference_hash,
+                    'deduplication_hash' => $comparable->deduplication_hash,
+                    'make' => $comparable->make,
+                    'model' => $comparable->model,
+                    'variant' => $comparable->variant,
+                    'year' => $comparable->year,
+                    'transmission' => $comparable->transmission,
+                    'fuel_type' => $comparable->fuel_type,
+                    'mileage' => $comparable->mileage,
+                    'listing_price' => $comparable->listing_price,
+                    'city' => $comparable->city,
+                    'observed_at' => $comparable->observed_at,
+                    'similarity_score' => $comparable->similarity_score,
+                    'weight' => $comparable->weight,
+                    'is_duplicate' => $comparable->is_duplicate,
+                    'is_outlier' => $comparable->is_outlier,
+                    'exclusion_reason' => $comparable->exclusion_reason,
+                    'metadata' => $comparable->metadata,
+                ])
+                ->values()
+                ->all(),
+        ];
     }
 
     public function requestRefresh(Appraisal $appraisal, User $actor): void

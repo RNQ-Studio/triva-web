@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Jobs\ProcessAppraisalMarketData;
 use App\Models\Appraisal;
 use App\Models\MarketDataSource;
+use App\Models\Vehicle;
 use App\Services\AppraisalMarketDataService;
 use App\Support\Enums\AppraisalStatus;
 use App\Support\Enums\MarketDataSourceStatus;
@@ -152,6 +153,90 @@ class AppraisalMarketDataProcessingTest extends TestCase
             'user_id' => $appraisal->user_id,
             'type' => 'appraisal_processing_failed',
         ]);
+    }
+
+    public function test_identical_input_from_a_different_account_reuses_the_same_price(): void
+    {
+        $source = MarketDataSource::query()->where('code', 'olx_approved_html')->firstOrFail();
+        $source->update([
+            'status' => MarketDataSourceStatus::Active,
+            'approval_reference' => 'OLX-TRIVA-TEST-2026',
+            'approved_at' => now()->subDay(),
+            'approval_expires_at' => now()->addYear(),
+        ]);
+        Http::fake([
+            'https://www.olx.co.id/*' => Http::sequence()
+                ->push($this->olxCards(8), 200, ['Content-Type' => 'text/html'])
+                ->push($this->olxCards(4), 200, ['Content-Type' => 'text/html']),
+        ]);
+
+        $first = $this->identicalAppraisal();
+        $second = $this->identicalAppraisal();
+
+        $firstEstimate = app(AppraisalMarketDataService::class)->process($first);
+        $secondEstimate = app(AppraisalMarketDataService::class)->process($second);
+
+        self::assertNotSame($first->user_id, $second->user_id);
+        self::assertSame($firstEstimate->trade_in_low, $secondEstimate->trade_in_low);
+        self::assertSame($firstEstimate->trade_in_high, $secondEstimate->trade_in_high);
+        self::assertSame($firstEstimate->market_mid, $secondEstimate->market_mid);
+        self::assertSame(
+            $firstEstimate->valuation_fingerprint,
+            $secondEstimate->valuation_fingerprint,
+        );
+        self::assertSame(
+            $firstEstimate->getKey(),
+            data_get($secondEstimate->calculation, 'reused_from.market_estimate_id'),
+        );
+        self::assertSame(
+            $first->results()->firstOrFail()->trade_in_high,
+            $second->results()->firstOrFail()->trade_in_high,
+        );
+    }
+
+    public function test_a_different_mileage_is_priced_on_its_own_market_data(): void
+    {
+        $source = MarketDataSource::query()->where('code', 'olx_approved_html')->firstOrFail();
+        $source->update([
+            'status' => MarketDataSourceStatus::Active,
+            'approval_reference' => 'OLX-TRIVA-TEST-2026',
+            'approved_at' => now()->subDay(),
+            'approval_expires_at' => now()->addYear(),
+        ]);
+        Http::fake([
+            'https://www.olx.co.id/*' => Http::response($this->olxCards(8), 200, [
+                'Content-Type' => 'text/html',
+            ]),
+        ]);
+
+        $first = $this->identicalAppraisal();
+        $second = $this->identicalAppraisal(['mileage' => 120_000]);
+
+        $firstEstimate = app(AppraisalMarketDataService::class)->process($first);
+        $secondEstimate = app(AppraisalMarketDataService::class)->process($second);
+
+        self::assertNotSame(
+            $firstEstimate->valuation_fingerprint,
+            $secondEstimate->valuation_fingerprint,
+        );
+        self::assertNull(data_get($secondEstimate->calculation, 'reused_from'));
+    }
+
+    /** @param array<string, mixed> $vehicleOverrides */
+    private function identicalAppraisal(array $vehicleOverrides = []): Appraisal
+    {
+        return Appraisal::factory()
+            ->for(Vehicle::factory()->state($vehicleOverrides))
+            ->create([
+                'status' => AppraisalStatus::CollectingMarketData,
+                'submitted_at' => now(),
+                'tax_status' => 'active',
+                'flood_history' => 'no',
+                'major_accident_history' => 'no',
+                'service_history' => 'complete',
+                'ownership' => 'first',
+                'condition_percentage' => 90,
+            ]);
     }
 
     private function olxCards(int $count): string

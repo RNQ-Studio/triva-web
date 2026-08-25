@@ -28,6 +28,7 @@ use Illuminate\Support\Carbon;
  * @property array<string, mixed>|null $calculation
  * @property string|null $failure_code
  * @property string|null $failure_message
+ * @property string|null $valuation_fingerprint
  * @property Carbon $calculated_at
  */
 class AppraisalMarketEstimate extends Model
@@ -51,6 +52,7 @@ class AppraisalMarketEstimate extends Model
         'failure_code',
         'failure_message',
         'calculated_at',
+        'valuation_fingerprint',
     ];
 
     protected function casts(): array
