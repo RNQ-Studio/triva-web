@@ -51,6 +51,22 @@ class AppraisalInfolist
                     TextEntry::make('condition_percentage')
                         ->label('Kondisi saat ini')
                         ->suffix('%'),
+                    TextEntry::make('engine_condition')
+                        ->label('Kondisi mesin')
+                        ->placeholder('Belum diisi')
+                        ->formatStateUsing(fn (string $state): string => match ($state) {
+                            'wet' => 'Basah / rembes',
+                            'normal' => 'Normal',
+                            default => $state,
+                        }),
+                    TextEntry::make('tyre_condition')
+                        ->label('Kondisi ban')
+                        ->placeholder('Belum diisi')
+                        ->formatStateUsing(fn (string $state): string => match ($state) {
+                            'damaged' => 'Rusak',
+                            'normal' => 'Normal',
+                            default => $state,
+                        }),
                     TextEntry::make('current_photos_count')->label('Foto saat ini')->suffix(' / 5'),
                 ]),
             Section::make('Hasil terbaru')

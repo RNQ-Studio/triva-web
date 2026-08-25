@@ -37,6 +37,8 @@ class AppraisalValuationFingerprint
             $this->normalize((string) ($appraisal->service_history ?? '')),
             $this->normalize((string) ($appraisal->ownership ?? '')),
             (string) ($appraisal->condition_percentage ?? ''),
+            $this->normalize((string) ($appraisal->engine_condition ?? '')),
+            $this->normalize((string) ($appraisal->tyre_condition ?? '')),
         ]));
     }
 

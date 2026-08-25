@@ -329,6 +329,8 @@ class OpenAiPriceDecisionProvider
     {
         return [
             'condition_percentage' => $appraisal->condition_percentage,
+            'engine_condition' => $appraisal->engine_condition,
+            'tyre_condition' => $appraisal->tyre_condition,
             'tax_status' => $appraisal->tax_status,
             'flood_history' => $appraisal->flood_history,
             'major_accident_history' => $appraisal->major_accident_history,

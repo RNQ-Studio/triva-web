@@ -24,6 +24,8 @@ class UpdateAppraisalConditionRequest extends FormRequest
             'service_history' => ['required', Rule::in(['complete', 'partial', 'none', 'unknown'])],
             'ownership' => ['required', Rule::in(['first', 'second', 'more', 'unknown'])],
             'condition_percentage' => ['sometimes', 'integer', 'between:0,100'],
+            'engine_condition' => ['required', Rule::in(['normal', 'wet'])],
+            'tyre_condition' => ['required', Rule::in(['normal', 'damaged'])],
         ];
     }
 }

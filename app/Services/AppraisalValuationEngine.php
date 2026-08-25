@@ -459,6 +459,8 @@ class AppraisalValuationEngine
             ['field' => 'service_history', 'value' => 'none', 'code' => 'service_none', 'label' => 'Riwayat servis tidak tersedia', 'percentage' => 2.5],
             ['field' => 'ownership', 'value' => 'second', 'code' => 'ownership_second', 'label' => 'Kepemilikan kedua', 'percentage' => 0.5],
             ['field' => 'ownership', 'value' => 'more', 'code' => 'ownership_more', 'label' => 'Kepemilikan lebih dari dua', 'percentage' => 1.0],
+            ['field' => 'engine_condition', 'value' => 'wet', 'code' => 'engine_wet', 'label' => 'Mesin basah atau rembes', 'percentage' => 4.0],
+            ['field' => 'tyre_condition', 'value' => 'damaged', 'code' => 'tyre_damaged', 'label' => 'Ban perlu diganti', 'percentage' => 2.0],
         ];
         foreach ($penalties as $penalty) {
             if ($appraisal->{$penalty['field']} === $penalty['value']) {

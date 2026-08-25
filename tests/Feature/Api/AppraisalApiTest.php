@@ -200,7 +200,35 @@ class AppraisalApiTest extends TestCase
             $this->conditionPayload(),
         )
             ->assertOk()
-            ->assertJsonPath('data.condition.condition_percentage', 90);
+            ->assertJsonPath('data.condition.condition_percentage', 90)
+            ->assertJsonPath('data.condition.engine_condition', 'normal')
+            ->assertJsonPath('data.condition.tyre_condition', 'normal');
+
+        $this->putJson(
+            "/api/v1/appraisals/{$appraisal->id}/vehicle-condition",
+            collect($this->conditionPayload())
+                ->except(['engine_condition', 'tyre_condition'])
+                ->all(),
+        )
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['engine_condition', 'tyre_condition']);
+
+        $this->putJson(
+            "/api/v1/appraisals/{$appraisal->id}/vehicle-condition",
+            [
+                ...$this->conditionPayload(),
+                'engine_condition' => 'wet',
+                'tyre_condition' => 'damaged',
+            ],
+        )
+            ->assertOk()
+            ->assertJsonPath('data.condition.engine_condition', 'wet')
+            ->assertJsonPath('data.condition.tyre_condition', 'damaged');
+
+        $this->putJson(
+            "/api/v1/appraisals/{$appraisal->id}/vehicle-condition",
+            $this->conditionPayload(),
+        )->assertOk();
 
         $foreignAsset = Asset::factory()->create([
             'user_id' => User::factory(),
@@ -442,6 +470,8 @@ class AppraisalApiTest extends TestCase
             'service_history' => 'complete',
             'ownership' => 'first',
             'condition_percentage' => 90,
+            'engine_condition' => 'normal',
+            'tyre_condition' => 'normal',
         ];
     }
 

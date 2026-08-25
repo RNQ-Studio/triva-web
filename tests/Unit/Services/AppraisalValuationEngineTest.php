@@ -132,6 +132,25 @@ class AppraisalValuationEngineTest extends TestCase
         );
     }
 
+    public function test_wet_engine_and_damaged_tyres_lower_the_trade_in_offer(): void
+    {
+        $engine = app(AppraisalValuationEngine::class);
+        $listings = $this->comparableListings(fuelType: 'gasoline');
+
+        $healthy = $engine->estimate($this->appraisal(fuelType: 'gasoline'), $listings);
+
+        $flawed = $this->appraisal(fuelType: 'gasoline');
+        $flawed->engine_condition = 'wet';
+        $flawed->tyre_condition = 'damaged';
+        $result = $engine->estimate($flawed, $listings);
+
+        self::assertSame(6.0, collect($result['adjustments'])
+            ->whereIn('code', ['engine_wet', 'tyre_damaged'])
+            ->sum(fn (array $adjustment): float => (float) $adjustment['percentage']));
+        self::assertLessThan($healthy['trade_in_low'], $result['trade_in_low']);
+        self::assertLessThan($healthy['trade_in_high'], $result['trade_in_high']);
+    }
+
     private function appraisal(string $fuelType): Appraisal
     {
         $vehicle = new Vehicle([
@@ -151,6 +170,8 @@ class AppraisalValuationEngineTest extends TestCase
             'service_history' => 'complete',
             'ownership' => 'first',
             'condition_percentage' => 90,
+            'engine_condition' => 'normal',
+            'tyre_condition' => 'normal',
         ]);
         $appraisal->setRelation('vehicle', $vehicle);
 
