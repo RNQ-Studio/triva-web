@@ -214,7 +214,9 @@ class CreditSimulationApiTest extends TestCase
         $payload['accept_expired_appraisal'] = true;
         $this->postJson('/api/v1/credit/simulations/calculate', $payload)
             ->assertOk()
-            ->assertJsonPath('data.inputs.trade_in_value', 110000000)
+            // Simulasi memakai angka trade-in yang dilihat pelanggan di
+            // halaman hasil, bukan titik tengah rentang yang sudah dihapus.
+            ->assertJsonPath('data.inputs.trade_in_value', 120000000)
             ->assertJsonCount(1, 'data.warnings');
 
         $other = User::factory()->create();

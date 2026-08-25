@@ -15,6 +15,7 @@ use App\Models\Appraisal;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Services\AppraisalService;
+use App\Services\AppraisalUpgradeOptionService;
 use App\Support\ApiResponse;
 use App\Support\Enums\AppraisalDecision;
 use Illuminate\Http\JsonResponse;
@@ -125,6 +126,26 @@ class AppraisalController extends Controller
         return ApiResponse::success(new AppraisalResource(
             $this->appraisals->resubmit($appraisal, $user)
         ), 'Perbaikan berhasil dikirim.');
+    }
+
+    /**
+     * Dua opsi unit baru Toyota yang uang mukanya tertutup harga appraisal,
+     * ditampilkan sebagai pop-up begitu hasil appraisal terbit.
+     */
+    public function upgradeOptions(
+        Request $request,
+        Appraisal $appraisal,
+        AppraisalUpgradeOptionService $options,
+    ): JsonResponse {
+        $this->authorize('view', $appraisal);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        return ApiResponse::success(
+            $options->for($appraisal, $user),
+            'Opsi upgrade tersedia.',
+        );
     }
 
     public function decision(

@@ -133,6 +133,8 @@ Route::prefix('v1')->group(function (): void {
             ->middleware('throttle:10,1');
         Route::post('appraisals/{appraisal}/resubmit', [AppraisalController::class, 'resubmit'])
             ->middleware('throttle:10,1');
+        Route::get('appraisals/{appraisal}/upgrade-options', [AppraisalController::class, 'upgradeOptions'])
+            ->middleware('throttle:60,1');
         Route::post('appraisals/{appraisal}/decision', [AppraisalController::class, 'decision']);
         Route::post('appraisals/{appraisal}/schedule-inspection', [AppraisalController::class, 'scheduleInspection']);
 

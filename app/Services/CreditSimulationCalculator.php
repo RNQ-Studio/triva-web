@@ -203,7 +203,10 @@ class CreditSimulationCalculator
 
         return [
             $appraisal,
-            intdiv($result->trade_in_low + $result->trade_in_high, 2),
+            // Sejak hasil appraisal disajikan sebagai satu angka, nilai inilah
+            // yang dijanjikan ke pelanggan -- simulasi kredit memakai angka
+            // yang sama supaya tidak ada selisih yang tidak bisa dijelaskan.
+            $result->trade_in_high,
             $warnings,
         ];
     }
