@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\AdminUserController;
 use App\Http\Controllers\Api\V1\AdminVisitStatisticsController;
 use App\Http\Controllers\Api\V1\AppController;
 use App\Http\Controllers\Api\V1\AppraisalController;
+use App\Http\Controllers\Api\V1\AppReleaseController;
 use App\Http\Controllers\Api\V1\ArticleController;
 use App\Http\Controllers\Api\V1\AssetController;
 use App\Http\Controllers\Api\V1\AuthController;
@@ -57,6 +58,12 @@ Route::prefix('v1')->group(function (): void {
     Route::prefix('app')->group(function (): void {
         Route::get('version', [AppController::class, 'version'])->middleware('throttle:60,1');
         Route::get('config', [AppController::class, 'config'])->middleware('throttle:60,1');
+        Route::get('releases/latest', [AppReleaseController::class, 'latest'])
+            ->middleware('throttle:60,1');
+        // Diotorisasi header X-App-Release-Key, bukan sesi customer; throttle
+        // ketat karena tiap request mengunggah biner puluhan megabyte.
+        Route::post('releases', [AppReleaseController::class, 'store'])
+            ->middleware('throttle:6,1');
     });
 
     // OTP endpoints (unauthenticated, heavily throttled)
