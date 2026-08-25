@@ -72,6 +72,8 @@ class BodyPaintEstimate extends Model
         'reference_no',
         'status',
         'customer_notes',
+        'is_insured',
+        'insurance_provider',
         'campaign_source',
         'campaign_metadata',
         'assigned_estimator_id',
@@ -123,6 +125,7 @@ class BodyPaintEstimate extends Model
     {
         return [
             'status' => BodyPaintEstimateStatus::class,
+            'is_insured' => 'boolean',
             'campaign_metadata' => 'array',
             'engine_total_low' => 'integer',
             'engine_total_high' => 'integer',

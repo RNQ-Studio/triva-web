@@ -87,6 +87,10 @@ class BodyPaintEstimateService
                     'reference_no' => $this->referenceNumber(),
                     'status' => BodyPaintEstimateStatus::Draft,
                     'customer_notes' => $data['customer_notes'] ?? null,
+                    'is_insured' => (bool) ($data['is_insured'] ?? false),
+                    'insurance_provider' => ($data['is_insured'] ?? false)
+                        ? ($data['insurance_provider'] ?? null)
+                        : null,
                     'campaign_source' => $data['campaign_source'] ?? null,
                     'campaign_metadata' => $data['campaign_metadata'] ?? null,
                     'idempotency_key' => $data['idempotency_key'],

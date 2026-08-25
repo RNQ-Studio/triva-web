@@ -57,6 +57,15 @@ class StoreBodyPaintEstimateRequest extends FormRequest
                     ->where('supports_workshop', true),
             ],
             'customer_notes' => ['nullable', 'string', 'max:3000'],
+            // Kendaraan yang diasuransikan tidak menerima nominal estimasi;
+            // biayanya mengikuti klaim, bukan penawaran bengkel.
+            'is_insured' => ['sometimes', 'boolean'],
+            'insurance_provider' => [
+                'nullable',
+                'required_if_accepted:is_insured',
+                'string',
+                'max:120',
+            ],
             'campaign_source' => ['nullable', 'string', 'max:100'],
             'campaign_metadata' => [
                 'nullable',

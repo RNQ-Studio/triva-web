@@ -32,6 +32,8 @@ class BodyPaintEstimateResource extends JsonResource
                 $this->whenLoaded('serviceLocation'),
             ),
             'customer_notes' => $this->customer_notes,
+            'is_insured' => $this->is_insured,
+            'insurance_provider' => $this->insurance_provider,
             'damages' => $this->relationLoaded('damages')
                 ? $this->damages->map(
                     fn (BodyPaintEstimateDamage $damage): array => [
@@ -163,8 +165,36 @@ class BodyPaintEstimateResource extends JsonResource
                 ->values()
             : [];
 
+        // Kendaraan yang diasuransikan tidak menerima nominal apa pun: biaya
+        // perbaikannya ditentukan klaim, dan menampilkan angka bengkel justru
+        // menyesatkan pelanggan. Estimasi tetap dihitung untuk bengkel.
+        if ($this->is_insured) {
+            return [
+                'version' => $version->version,
+                'is_insured' => true,
+                'cost_hidden_reason' => 'insurance_claim',
+                'insurance_provider' => $this->insurance_provider,
+                'insurance_notice' => 'Perbaikan kendaraan Anda diproses lewat klaim asuransi, sehingga estimasi biaya tidak ditampilkan. Tim Body & Paint Auto2000 Kertajaya akan membantu proses klaim dan menginformasikan hasilnya.',
+                'currency' => 'IDR',
+                'duration' => [
+                    'min_days' => $version->duration_min_days,
+                    'max_days' => $version->duration_max_days,
+                ],
+                'assumptions' => $version->assumptions,
+                'items' => collect($items)->map(
+                    fn (array $item): array => collect($item)
+                        ->except(['cost'])
+                        ->all(),
+                )->values(),
+                'disclaimer' => $version->disclaimer,
+                'published_at' => $version->published_at->toIso8601String(),
+                'valid_until' => $this->valid_until?->toIso8601String(),
+            ];
+        }
+
         return [
             'version' => $version->version,
+            'is_insured' => false,
             'low' => $version->total_low,
             'high' => $version->total_high,
             'currency' => 'IDR',

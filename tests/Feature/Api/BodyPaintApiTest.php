@@ -4,6 +4,7 @@ namespace Tests\Feature\Api;
 
 use App\Models\Asset;
 use App\Models\BodyPaintDamagePhoto;
+use App\Models\BodyPaintEstimate;
 use App\Models\BodyPaintPriceItem;
 use App\Models\BodyPaintStatusHistory;
 use App\Models\User;
@@ -570,6 +571,73 @@ class BodyPaintApiTest extends TestCase
             ->assertJsonPath('data.estimate.version', 1);
     }
 
+    public function test_an_insured_vehicle_receives_guidance_instead_of_a_cost_estimate(): void
+    {
+        BodyPaintPriceItem::factory()->create();
+        Passport::actingAs($this->customer);
+        $estimate = $this->completeAndSubmit(draftOverrides: [
+            'is_insured' => true,
+            'insurance_provider' => 'Asuransi Astra',
+        ]);
+        $this->publishAsEstimator($estimate);
+
+        Passport::actingAs($this->customer);
+        $response = $this->getJson(
+            "/api/v1/body-paint/estimates/{$estimate['id']}",
+        )->assertOk();
+
+        $response
+            ->assertJsonPath('data.is_insured', true)
+            ->assertJsonPath('data.insurance_provider', 'Asuransi Astra')
+            ->assertJsonPath('data.estimate.is_insured', true)
+            ->assertJsonPath('data.estimate.cost_hidden_reason', 'insurance_claim')
+            ->assertJsonMissingPath('data.estimate.low')
+            ->assertJsonMissingPath('data.estimate.high');
+
+        foreach ($response->json('data.estimate.items') as $item) {
+            self::assertArrayNotHasKey('cost', $item);
+        }
+
+        // Bengkel tetap butuh angkanya, jadi estimasi internal harus tersimpan.
+        $this->assertDatabaseHas('body_paint_estimates', [
+            'id' => $estimate['id'],
+            'is_insured' => true,
+        ]);
+        self::assertNotNull(
+            BodyPaintEstimate::query()
+                ->findOrFail($estimate['id'])
+                ->published_total_high,
+        );
+    }
+
+    public function test_naming_an_insurer_is_required_once_the_vehicle_is_insured(): void
+    {
+        Passport::actingAs($this->customer);
+
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/body-paint/estimates', [
+                'vehicle_id' => $this->vehicle->getKey(),
+                'is_insured' => true,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['insurance_provider']);
+    }
+
+    public function test_an_uninsured_estimate_still_shows_its_cost(): void
+    {
+        BodyPaintPriceItem::factory()->create();
+        Passport::actingAs($this->customer);
+        $estimate = $this->completeAndSubmit();
+        $this->publishAsEstimator($estimate);
+
+        Passport::actingAs($this->customer);
+        $this->getJson("/api/v1/body-paint/estimates/{$estimate['id']}")
+            ->assertOk()
+            ->assertJsonPath('data.is_insured', false)
+            ->assertJsonPath('data.estimate.is_insured', false)
+            ->assertJsonStructure(['data' => ['estimate' => ['low', 'high']]]);
+    }
+
     public function test_booking_conversion_creates_one_linked_request_for_non_toyota_vehicle(): void
     {
         BodyPaintPriceItem::factory()->create();
@@ -735,12 +803,14 @@ class BodyPaintApiTest extends TestCase
     }
 
     /** @return array<string, mixed> */
-    private function createDraft(): array
+    /** @param array<string, mixed> $overrides */
+    private function createDraft(array $overrides = []): array
     {
         return $this->withHeader('Idempotency-Key', (string) Str::uuid())
             ->postJson('/api/v1/body-paint/estimates', [
                 'vehicle_id' => $this->vehicle->getKey(),
                 'customer_notes' => 'Mohon estimasi panel rusak.',
+                ...$overrides,
             ])
             ->assertCreated()
             ->json('data');
@@ -748,11 +818,14 @@ class BodyPaintApiTest extends TestCase
 
     /**
      * @param  array<string, mixed>  $damageOverrides
+     * @param  array<string, mixed>  $draftOverrides
      * @return array<string, mixed>
      */
-    private function completeAndSubmit(array $damageOverrides = []): array
-    {
-        $estimate = $this->createDraft();
+    private function completeAndSubmit(
+        array $damageOverrides = [],
+        array $draftOverrides = [],
+    ): array {
+        $estimate = $this->createDraft($draftOverrides);
         $updated = $this->putJson(
             "/api/v1/body-paint/estimates/{$estimate['id']}/damages",
             ['damages' => [$this->damagePayload($damageOverrides)]],
