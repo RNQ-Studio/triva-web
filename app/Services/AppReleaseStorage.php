@@ -19,7 +19,7 @@ class AppReleaseStorage
      */
     public function upload(string $realPath, string $objectPath): string
     {
-        $disk = Storage::disk(config('app_update.disk', 'gcs'));
+        $disk = Storage::disk(config('app_update.disk', 'public'));
 
         // Warning fopen() diubah Laravel menjadi ErrorException, yang membuat
         // pemeriksaan false di bawah tidak pernah tercapai; @ dipakai supaya

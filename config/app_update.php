@@ -17,15 +17,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Disk Object Storage
+    | Disk Penyimpanan Rilis
     |--------------------------------------------------------------------------
     |
-    | Biner APK tidak boleh menempel di disk aplikasi supaya selamat dari
-    | deploy; default-nya bucket GCS yang sama dengan asset customer.
+    | Default-nya `public`: berkasnya berada di storage/app/public, jadi
+    | selamat dari deploy dan langsung terunduh lewat APP_URL/storage tanpa
+    | kredensial tambahan. Tidak ada environment proyek ini yang punya
+    | kredensial GCS, jadi default ke `gcs` hanya menghasilkan kegagalan tulis
+    | "Not Found" saat rilis diunggah.
+    |
+    | Object storage tetap lebih baik karena biner tidak ikut hilang saat
+    | server dibangun ulang. Set APP_RELEASE_DISK=gcs begitu bucket dan service
+    | account-nya tersedia.
     |
     */
 
-    'disk' => env('APP_RELEASE_DISK', 'gcs'),
+    'disk' => env('APP_RELEASE_DISK', 'public'),
 
     /*
     |--------------------------------------------------------------------------
