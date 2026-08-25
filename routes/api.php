@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\V1\QuoteController;
 use App\Http\Controllers\Api\V1\RegionController;
 use App\Http\Controllers\Api\V1\TagController;
 use App\Http\Controllers\Api\V1\ToyotaServiceController;
+use App\Http\Controllers\Api\V1\VehicleBenefitController;
 use App\Http\Controllers\Api\V1\VehicleController;
 use App\Http\Controllers\Api\V1\VehicleMakeController;
 use App\Http\Controllers\Api\V1\VehicleModelController;
@@ -120,6 +121,10 @@ Route::prefix('v1')->group(function (): void {
             ->middleware('throttle:60,1');
 
         Route::post('assets/upload', [AssetController::class, 'upload'])->middleware('throttle:30,1');
+
+        // Cek mandiri No. Rangka: keterlibatan SSC dan sisa fasilitas T-Care.
+        Route::post('vehicle-benefits/check', [VehicleBenefitController::class, 'check'])
+            ->middleware('throttle:30,1');
 
         Route::apiResource('vehicles', VehicleController::class)
             ->only(['index', 'store', 'show', 'update']);
