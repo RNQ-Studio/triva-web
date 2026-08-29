@@ -136,7 +136,9 @@ class AuthController extends Controller
         $validated = $request->validated();
 
         DB::transaction(function () use ($user, $validated): void {
-            $profile = collect($validated)->only(['name', 'email', 'phone', 'city'])->all();
+            $profile = collect($validated)
+                ->only(['name', 'email', 'phone', 'city', 'gender', 'birth_date'])
+                ->all();
 
             if (array_key_exists('city_id', $validated)) {
                 $profile['city'] = Region::query()

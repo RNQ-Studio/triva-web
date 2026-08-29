@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Notifications\VerifyEmailNotification;
+use App\Support\Enums\Gender;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -29,6 +30,8 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string|null $google_sub
  * @property string|null $phone
  * @property string|null $city
+ * @property Gender|null $gender
+ * @property Carbon|null $birth_date
  * @property string|null $avatar
  * @property Carbon|null $service_consent_at
  * @property bool $marketing_consent
@@ -48,6 +51,8 @@ use Spatie\Permission\Traits\HasRoles;
     'avatar',
     'phone',
     'city',
+    'gender',
+    'birth_date',
     'service_consent_at',
     'marketing_consent',
     'marketing_consent_updated_at',
@@ -84,6 +89,22 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail, OAu
     public function canAccessPanel(Panel $panel): bool
     {
         return $this->is_active && $this->hasAnyRole(self::PANEL_ROLES);
+    }
+
+    /** Umur dalam tahun penuh, atau null bila tanggal lahir belum diisi. */
+    public function age(?Carbon $now = null): ?int
+    {
+        if ($this->birth_date === null) {
+            return null;
+        }
+
+        return (int) $this->birth_date->diffInYears($now ?? Carbon::now());
+    }
+
+    /** Data demografi wajib untuk aplikasi versi baru. */
+    public function hasCompletedDemographics(): bool
+    {
+        return $this->gender !== null && $this->birth_date !== null;
     }
 
     /** @return HasMany<UserDevice, $this> */
@@ -203,6 +224,8 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail, OAu
         return [
             'email_verified_at' => 'datetime',
             'phone_verified_at' => 'datetime',
+            'gender' => Gender::class,
+            'birth_date' => 'date',
             'service_consent_at' => 'datetime',
             'marketing_consent' => 'boolean',
             'marketing_consent_updated_at' => 'datetime',

@@ -42,6 +42,60 @@ class ProfileTest extends TestCase
         ]);
     }
 
+    public function test_user_can_save_gender_and_birth_date_without_locking_older_installs(): void
+    {
+        $user = User::factory()->create([
+            'phone' => '+628123456789',
+            'city' => 'Bandung',
+            'service_consent_at' => now(),
+        ]);
+        Passport::actingAs($user);
+
+        // Pemasangan lama tidak mengirim demografi: profil tetap dianggap
+        // lengkap supaya gerbang lamanya tidak terkunci.
+        $this->getJson('/api/v1/auth/me')
+            ->assertOk()
+            ->assertJsonPath('data.profile_completed', true)
+            ->assertJsonPath('data.demographics_completed', false)
+            ->assertJsonPath('data.gender', null)
+            ->assertJsonPath('data.age', null);
+
+        $this->putJson('/api/v1/auth/me', [
+            'gender' => 'female',
+            'birth_date' => '1995-06-15',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.gender', 'female')
+            ->assertJsonPath('data.birth_date', '1995-06-15')
+            ->assertJsonPath('data.demographics_completed', true);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->getKey(),
+            'gender' => 'female',
+        ]);
+        $this->assertSame('1995-06-15', $user->refresh()->birth_date?->toDateString());
+        $this->assertNotNull($user->age());
+    }
+
+    public function test_profile_rejects_unknown_gender_and_out_of_range_birth_date(): void
+    {
+        Passport::actingAs(User::factory()->create());
+
+        $this->putJson('/api/v1/auth/me', ['gender' => 'unknown'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['gender']);
+
+        $this->putJson('/api/v1/auth/me', [
+            'birth_date' => now()->subYears(3)->toDateString(),
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['birth_date']);
+
+        $this->putJson('/api/v1/auth/me', ['birth_date' => '15-06-1995'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['birth_date']);
+    }
+
     public function test_profile_email_must_be_unique_except_for_current_user(): void
     {
         User::factory()->create(['email' => 'taken@example.com']);

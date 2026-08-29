@@ -35,10 +35,17 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'phone' => $this->phone,
             'city' => $this->city,
+            'gender' => $this->gender?->value,
+            'birth_date' => $this->birth_date?->toDateString(),
+            'age' => $this->age(),
             'avatar_url' => $avatarUrl,
             'profile_completed' => filled($this->phone)
                 && filled($this->city)
                 && $this->service_consent_at !== null,
+            // Dipisahkan dari `profile_completed` supaya pemasangan lama —
+            // yang tidak mengenal isian ini — tidak terkunci di layar
+            // lengkapi profil tanpa cara memperbaiki diri.
+            'demographics_completed' => $this->hasCompletedDemographics(),
             'service_consent_at' => $this->service_consent_at?->toIso8601String(),
             'marketing_consent' => $this->marketing_consent,
             'is_active' => $this->is_active,

@@ -6,6 +6,8 @@ use App\Models\Asset;
 use App\Services\AssetDeletionService;
 use App\Services\AssetUploadService;
 use App\Services\FileUploadService;
+use App\Support\Enums\Gender;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -107,6 +109,21 @@ class UserForm
                     ->dehydrated(fn (?string $state): bool => filled($state))
                     ->helperText('Leave blank to keep the current password.')
                     ->maxLength(255),
+                TextInput::make('phone')
+                    ->tel()
+                    ->maxLength(20),
+                TextInput::make('city')
+                    ->label('Kota/Kabupaten')
+                    ->maxLength(100),
+                Select::make('gender')
+                    ->label('Gender')
+                    ->options(Gender::options())
+                    ->native(false),
+                DatePicker::make('birth_date')
+                    ->label('Tanggal lahir')
+                    ->maxDate(now()->subYears(17))
+                    ->minDate(now()->subYears(100))
+                    ->displayFormat('d M Y'),
                 Select::make('roles')
                     ->relationship('roles', 'name')
                     ->multiple()

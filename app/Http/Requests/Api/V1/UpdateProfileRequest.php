@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\V1;
 
 use App\Models\Region;
+use App\Support\Enums\Gender;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -30,6 +31,14 @@ class UpdateProfileRequest extends FormRequest
             ],
             'phone' => ['sometimes', 'required', 'regex:/^\+?[0-9]{9,15}$/'],
             'city' => ['sometimes', 'required', 'string', 'max:100'],
+            'gender' => ['sometimes', 'required', Rule::enum(Gender::class)],
+            'birth_date' => [
+                'sometimes',
+                'required',
+                'date_format:Y-m-d',
+                'before_or_equal:'.now()->subYears(17)->toDateString(),
+                'after_or_equal:'.now()->subYears(100)->toDateString(),
+            ],
             'province_id' => [
                 'required_with:city_id',
                 'integer',

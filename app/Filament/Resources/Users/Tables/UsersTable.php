@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users\Tables;
 
+use App\Support\Enums\Gender;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -25,6 +26,30 @@ class UsersTable
                     ->label('Email address')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('phone')
+                    ->label('Telepon')
+                    ->searchable()
+                    ->toggleable(),
+                TextColumn::make('city')
+                    ->label('Kota')
+                    ->searchable()
+                    ->toggleable(),
+                TextColumn::make('gender')
+                    ->label('Gender')
+                    ->badge()
+                    ->formatStateUsing(
+                        fn (?Gender $state): string => $state?->label() ?? '—',
+                    )
+                    ->toggleable(),
+                TextColumn::make('birth_date')
+                    ->label('Usia')
+                    ->formatStateUsing(function ($state, $record): string {
+                        $age = $record->age();
+
+                        return $age === null ? '—' : $age.' th';
+                    })
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('roles.name')
                     ->label('Roles')
                     ->badge(),
@@ -43,6 +68,9 @@ class UsersTable
                     ->preload(),
                 TernaryFilter::make('is_active')
                     ->label('Active'),
+                SelectFilter::make('gender')
+                    ->label('Gender')
+                    ->options(Gender::options()),
             ])
             ->recordActions([
                 EditAction::make(),
