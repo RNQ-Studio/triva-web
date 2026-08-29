@@ -1,10 +1,14 @@
 <?php
 
 use App\Http\Controllers\Api\UserExcelController;
+use App\Http\Controllers\Api\V1\AdminAppraisalController;
 use App\Http\Controllers\Api\V1\AdminBodyPaintController;
+use App\Http\Controllers\Api\V1\AdminCreditSimulationController;
+use App\Http\Controllers\Api\V1\AdminMenuUsageStatisticsController;
 use App\Http\Controllers\Api\V1\AdminOtoxpertBookingController;
 use App\Http\Controllers\Api\V1\AdminToyotaServiceBookingController;
 use App\Http\Controllers\Api\V1\AdminUserController;
+use App\Http\Controllers\Api\V1\AdminUserDemographicsController;
 use App\Http\Controllers\Api\V1\AdminVisitStatisticsController;
 use App\Http\Controllers\Api\V1\AppController;
 use App\Http\Controllers\Api\V1\AppraisalController;
@@ -18,6 +22,7 @@ use App\Http\Controllers\Api\V1\CreditCatalogController;
 use App\Http\Controllers\Api\V1\CreditSimulationController;
 use App\Http\Controllers\Api\V1\EmailVerificationController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\MenuUsageController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OtoxpertController;
 use App\Http\Controllers\Api\V1\OtpController;
@@ -339,13 +344,43 @@ Route::prefix('v1')->group(function (): void {
             });
         });
 
+        Route::post('analytics/menu-usage', [MenuUsageController::class, 'store'])
+            ->middleware('throttle:120,1');
+
+        Route::prefix('admin/appraisals')->group(function (): void {
+            Route::get('options', [AdminAppraisalController::class, 'options']);
+            Route::get('/', [AdminAppraisalController::class, 'index']);
+            Route::get('{appraisal}', [AdminAppraisalController::class, 'show']);
+        });
+
+        Route::prefix('admin/credit/simulations')->group(function (): void {
+            Route::get(
+                'options',
+                [AdminCreditSimulationController::class, 'options'],
+            );
+            Route::get('/', [AdminCreditSimulationController::class, 'index']);
+            Route::get(
+                '{simulation}',
+                [AdminCreditSimulationController::class, 'show'],
+            );
+        });
+
         Route::prefix('admin/users')->group(function (): void {
             Route::get('/', [AdminUserController::class, 'index']);
+            Route::get('{user}', [AdminUserController::class, 'show']);
             Route::post('{user}/grant-admin', [AdminUserController::class, 'grantAdmin'])
                 ->middleware('throttle:30,1');
         });
 
         Route::get('admin/analytics/visits', AdminVisitStatisticsController::class);
+        Route::get(
+            'admin/analytics/demographics',
+            AdminUserDemographicsController::class,
+        );
+        Route::get(
+            'admin/analytics/menu-usage',
+            AdminMenuUsageStatisticsController::class,
+        );
 
         Route::apiResource('categories', CategoryController::class);
         Route::apiResource('articles', ArticleController::class);

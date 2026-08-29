@@ -13,6 +13,12 @@ class AppraisalPolicy
         return true;
     }
 
+    /** Melihat seluruh appraisal pelanggan dari panel admin. */
+    public function manageAny(User $user): bool
+    {
+        return $user->can('appraisals.viewAny');
+    }
+
     public function view(User $user, Appraisal $appraisal): bool
     {
         return $appraisal->user_id === $user->getKey()

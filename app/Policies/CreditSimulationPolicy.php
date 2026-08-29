@@ -12,6 +12,12 @@ class CreditSimulationPolicy
         return true;
     }
 
+    /** Melihat seluruh simulasi pelanggan dari panel admin. */
+    public function manageAny(User $user): bool
+    {
+        return $user->can('credit_leads.viewAny');
+    }
+
     public function create(User $user): bool
     {
         return true;
