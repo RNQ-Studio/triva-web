@@ -43,6 +43,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $customer_decided_at
  * @property Carbon|null $inspection_scheduled_at
  * @property string|null $inspection_notes
+ * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Vehicle $vehicle
  * @property-read Collection<int, AppraisalAiAgentRun> $aiAgentRuns
