@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\AdminBodyPaintController;
 use App\Http\Controllers\Api\V1\AdminCreditSimulationController;
 use App\Http\Controllers\Api\V1\AdminMenuUsageStatisticsController;
 use App\Http\Controllers\Api\V1\AdminOtoxpertBookingController;
+use App\Http\Controllers\Api\V1\AdminPlayStoreInstallsController;
 use App\Http\Controllers\Api\V1\AdminToyotaServiceBookingController;
 use App\Http\Controllers\Api\V1\AdminUserController;
 use App\Http\Controllers\Api\V1\AdminUserDemographicsController;
@@ -380,6 +381,10 @@ Route::prefix('v1')->group(function (): void {
         Route::get(
             'admin/analytics/menu-usage',
             AdminMenuUsageStatisticsController::class,
+        );
+        Route::get(
+            'admin/analytics/play-store-installs',
+            AdminPlayStoreInstallsController::class,
         );
 
         Route::apiResource('categories', CategoryController::class);

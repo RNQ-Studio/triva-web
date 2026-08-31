@@ -40,6 +40,10 @@ class AppConfigSeeder extends Seeder
             ['key' => 'whatsapp_toyota_service', 'value' => '6285713112000', 'type' => 'string', 'description' => 'Nomor WhatsApp booking servis Toyota dan cek SSC Auto2000 Kertajaya'],
             ['key' => 'whatsapp_otoxpert', 'value' => '6281511060290', 'type' => 'string', 'description' => 'Nomor WhatsApp booking OtoXpert'],
             ['key' => 'whatsapp_body_paint', 'value' => '6285713112000', 'type' => 'string', 'description' => 'Nomor WhatsApp PIC Body & Paint Auto2000 Kertajaya'],
+            // Tipe string, bukan integer, supaya nilai kosong tetap bisa dibedakan
+            // dari nol pemasangan saat App Config mengecor nilainya.
+            ['key' => 'play_store_total_installs', 'value' => '', 'type' => 'string', 'description' => 'Total download (Total user installs) di Google Play, disalin dari Play Console'],
+            ['key' => 'play_store_installs_reported_at', 'value' => '', 'type' => 'string', 'description' => 'Tanggal berlakunya angka total download Play Store, format YYYY-MM-DD'],
         ];
 
         foreach ($configs as $config) {

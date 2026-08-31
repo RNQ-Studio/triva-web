@@ -4,6 +4,7 @@ namespace App\Filament\Resources\AppConfigs;
 
 use App\Filament\Resources\AppConfigs\Pages\ListAppConfigs;
 use App\Models\AppConfig;
+use App\Services\PlayStoreInstallsService;
 use App\Support\Enums\AppConfigType;
 use BackedEnum;
 use Filament\Actions\CreateAction;
@@ -66,6 +67,13 @@ class AppConfigResource extends Resource
             ->recordActions([
                 EditAction::make()->after(function (AppConfig $record): void {
                     AppConfig::bustCache($record->key);
+
+                    // Total download Play Store di-cache terpisah dari App
+                    // Config, jadi angka baru tidak akan terlihat di panel
+                    // admin sampai cache itu ikut dibuang.
+                    if (str_starts_with($record->key, 'play_store_')) {
+                        PlayStoreInstallsService::bustCache();
+                    }
                 }),
             ])
             ->defaultSort('key');
