@@ -3,15 +3,19 @@
 namespace Tests\Unit\Services;
 
 use App\Models\AppConfig;
+use App\Models\User;
 use App\Services\PlayStore\ManualInstallsSource;
 use App\Services\PlayStore\PlayReportsInstallsSource;
+use App\Services\PlayStore\UniqueDevicesInstallsSource;
 use App\Services\PlayStoreInstallsService;
 use App\Support\Enums\AppConfigType;
 use App\Support\Enums\PlayStoreInstallsSource;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class PlayStoreInstallsTest extends TestCase
@@ -111,6 +115,7 @@ class PlayStoreInstallsTest extends TestCase
             new PlayReportsInstallsSource($this->diskWithReport('202608', [
                 '2026-08-30,id.rnq.triva,12,0,0,12482,12,0,8112',
             ])),
+            new UniqueDevicesInstallsSource,
         );
 
         $summary = $withReport->summarize();
@@ -121,6 +126,7 @@ class PlayStoreInstallsTest extends TestCase
         $withoutReport = new PlayStoreInstallsService(
             new ManualInstallsSource,
             new PlayReportsInstallsSource(Storage::fake('empty-reports')),
+            new UniqueDevicesInstallsSource,
         );
 
         $summary = $withoutReport->summarize();
@@ -141,6 +147,7 @@ class PlayStoreInstallsTest extends TestCase
             new PlayReportsInstallsSource($this->diskWithReport('202608', [
                 '2026-08-30,id.rnq.triva,12,0,0,12482,12,0,8112',
             ])),
+            new UniqueDevicesInstallsSource,
         );
 
         $summary = $service->summarize();
@@ -156,6 +163,7 @@ class PlayStoreInstallsTest extends TestCase
         $service = new PlayStoreInstallsService(
             new ManualInstallsSource,
             new PlayReportsInstallsSource(Storage::fake('unused-reports')),
+            new UniqueDevicesInstallsSource,
         );
 
         $this->manual('100', null);
@@ -169,6 +177,82 @@ class PlayStoreInstallsTest extends TestCase
 
         PlayStoreInstallsService::bustCache();
         $this->assertSame(200, $service->summarize()['total_installs']);
+    }
+
+    public function test_unique_devices_counts_each_device_once(): void
+    {
+        $first = User::factory()->create();
+        $second = User::factory()->create();
+
+        $this->device($first, 'device-a');
+        $this->device($first, 'device-b');
+        // Perangkat yang sama dipakai akun lain tetap satu perangkat.
+        $this->device($second, 'device-a');
+
+        $installs = (new UniqueDevicesInstallsSource)->fetch();
+
+        $this->assertNotNull($installs);
+        $this->assertSame(2, $installs->totalInstalls);
+        $this->assertSame(
+            PlayStoreInstallsSource::UniqueDevices,
+            $installs->source,
+        );
+        $this->assertNull($installs->reportedAt);
+    }
+
+    public function test_unique_devices_reports_zero_rather_than_unconfigured(): void
+    {
+        $installs = (new UniqueDevicesInstallsSource)->fetch();
+
+        $this->assertNotNull($installs);
+        $this->assertSame(0, $installs->totalInstalls);
+    }
+
+    public function test_unique_devices_is_the_default_source(): void
+    {
+        config()->set('play_store.installs.source', null);
+        $this->device(User::factory()->create(), 'device-a');
+        // Angka manual sengaja diisi supaya ketahuan kalau sumbernya tertukar.
+        $this->manual('900', null);
+
+        $summary = $this->service()->summarize();
+
+        $this->assertSame(1, $summary['total_installs']);
+        $this->assertSame('unique_devices', $summary['source']);
+        $this->assertTrue($summary['configured']);
+    }
+
+    public function test_manual_source_still_wins_when_it_is_configured(): void
+    {
+        config()->set('play_store.installs.source', 'manual');
+        $this->device(User::factory()->create(), 'device-a');
+        $this->manual('900', null);
+
+        $summary = $this->service()->summarize();
+
+        $this->assertSame(900, $summary['total_installs']);
+        $this->assertSame('manual', $summary['source']);
+    }
+
+    private function service(): PlayStoreInstallsService
+    {
+        return new PlayStoreInstallsService(
+            new ManualInstallsSource,
+            new PlayReportsInstallsSource(Storage::fake('unused')),
+            new UniqueDevicesInstallsSource,
+        );
+    }
+
+    private function device(User $user, string $deviceId): void
+    {
+        DB::table('user_devices')->insert([
+            'id' => (string) Str::ulid(),
+            'user_id' => $user->id,
+            'device_id' => $deviceId,
+            'platform' => 'android',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     /** @param  array<int, string>  $rows */

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Services\PlayStore\InstallsSource;
 use App\Services\PlayStore\ManualInstallsSource;
 use App\Services\PlayStore\PlayReportsInstallsSource;
+use App\Services\PlayStore\UniqueDevicesInstallsSource;
 use App\Support\Enums\PlayStoreInstallsSource;
 use App\Support\PlayStoreInstalls;
 use Carbon\CarbonImmutable;
@@ -24,6 +25,7 @@ class PlayStoreInstallsService
     public function __construct(
         private readonly ManualInstallsSource $manual,
         private readonly PlayReportsInstallsSource $playReports,
+        private readonly UniqueDevicesInstallsSource $uniqueDevices,
     ) {}
 
     /** @return array<string, mixed> */
@@ -80,12 +82,17 @@ class PlayStoreInstallsService
     private function sources(): array
     {
         $configured = PlayStoreInstallsSource::tryFrom(
-            (string) config('play_store.installs.source', 'manual'),
-        ) ?? PlayStoreInstallsSource::Manual;
+            (string) config('play_store.installs.source', 'unique_devices'),
+        ) ?? PlayStoreInstallsSource::UniqueDevices;
 
-        return $configured === PlayStoreInstallsSource::PlayReports
-            ? [$this->playReports, $this->manual]
-            : [$this->manual];
+        // Sumber utama dicoba lebih dulu, angka manual jadi jaring pengaman
+        // supaya panel admin tidak pernah kosong. `unique_devices` selalu
+        // menghasilkan angka, jadi cadangannya tidak pernah terpakai.
+        return match ($configured) {
+            PlayStoreInstallsSource::PlayReports => [$this->playReports, $this->manual],
+            PlayStoreInstallsSource::UniqueDevices => [$this->uniqueDevices, $this->manual],
+            PlayStoreInstallsSource::Manual => [$this->manual],
+        };
     }
 
     /** @param  array<string, mixed>  $cached */

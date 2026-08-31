@@ -24,25 +24,33 @@ return [
     | sumber terprogram adalah ekspor laporan Play Console di bucket
     | `pubsite_prod_rev_<developer-id>`.
     |
-    | Karena itu ada dua sumber:
+    | Karena itu ada tiga sumber:
     |
-    |   manual       angka disalin admin dari Play Console lewat App Config.
-    |   play_reports berkas CSV laporan instal dibaca langsung dari bucket.
+    |   unique_devices perangkat unik yang pernah membuka aplikasi, dihitung
+    |                  dari `user_devices`. Ini yang dipakai sekarang.
+    |   manual         angka disalin admin dari Play Console lewat App Config.
+    |   play_reports   berkas CSV laporan instal dibaca langsung dari bucket.
+    |
+    | `unique_devices` bukan jumlah unduhan Play Store: perangkat yang memasang
+    | lalu berhenti di layar login tidak terhitung, sehingga angkanya lebih
+    | rendah daripada unduhan sesungguhnya. Ditukar dengan `play_reports` kalau
+    | angka Play Store yang sebenarnya dibutuhkan.
     |
     | `play_reports` baru bisa dipakai setelah nama bucket diisi dan service
-    | account Play diberi akses baca ke bucket tersebut. Selama laporan belum
-    | terbaca, angka manual tetap dipakai supaya panel admin tidak kosong.
+    | account Play diberi akses baca ke bucket tersebut. Selama sumber utama
+    | belum menghasilkan angka, angka manual dipakai supaya panel tidak kosong.
     |
     */
 
     'installs' => [
-        'source' => env('PLAY_STORE_INSTALLS_SOURCE', 'manual'),
+        'source' => env('PLAY_STORE_INSTALLS_SOURCE', 'unique_devices'),
 
         'reports_bucket' => env('PLAY_STORE_REPORTS_BUCKET'),
 
-        // Laporan Play Console hanya diperbarui harian, jadi tidak ada gunanya
-        // menembak bucket pada setiap kali panel admin dibuka.
-        'cache_ttl' => (int) env('PLAY_STORE_INSTALLS_CACHE_TTL', 3600),
+        // Cukup pendek supaya perangkat yang baru masuk terlihat tanpa lama
+        // menunggu, cukup panjang supaya bucket laporan tidak ditembak pada
+        // setiap kali panel admin dibuka.
+        'cache_ttl' => (int) env('PLAY_STORE_INSTALLS_CACHE_TTL', 300),
 
         // Laporan bulan berjalan kadang belum terbit di awal bulan, jadi
         // berkas bulan-bulan sebelumnya ikut dicoba.

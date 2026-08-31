@@ -9,6 +9,8 @@ use App\Support\Enums\AppConfigType;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Laravel\Passport\Passport;
 use Tests\TestCase;
 
@@ -29,6 +31,13 @@ class AdminPlayStoreInstallsApiTest extends TestCase
         PlayStoreInstallsService::bustCache();
     }
 
+    /** Skenario angka manual harus menyebut sumbernya; default kini perangkat unik. */
+    private function useManualSource(): void
+    {
+        config()->set('play_store.installs.source', 'manual');
+        PlayStoreInstallsService::bustCache();
+    }
+
     public function test_play_store_installs_requires_authentication_and_analytics_permission(): void
     {
         $this->getJson('/api/v1/admin/analytics/play-store-installs')
@@ -44,6 +53,7 @@ class AdminPlayStoreInstallsApiTest extends TestCase
 
     public function test_installs_report_as_unconfigured_while_the_number_is_blank(): void
     {
+        $this->useManualSource();
         $this->config('play_store_total_installs', '');
 
         Passport::actingAs($this->admin);
@@ -58,6 +68,7 @@ class AdminPlayStoreInstallsApiTest extends TestCase
 
     public function test_manual_number_is_served_with_its_reporting_date(): void
     {
+        $this->useManualSource();
         $this->config('play_store_total_installs', '12480');
         $this->config('play_store_installs_reported_at', '2026-08-30');
 
@@ -73,6 +84,7 @@ class AdminPlayStoreInstallsApiTest extends TestCase
 
     public function test_zero_installs_stay_distinguishable_from_a_blank_number(): void
     {
+        $this->useManualSource();
         $this->config('play_store_total_installs', '0');
 
         Passport::actingAs($this->admin);
@@ -85,6 +97,7 @@ class AdminPlayStoreInstallsApiTest extends TestCase
 
     public function test_a_mistyped_number_is_treated_as_unconfigured(): void
     {
+        $this->useManualSource();
         $this->config('play_store_total_installs', '12.480 unduhan');
 
         Passport::actingAs($this->admin);
@@ -97,6 +110,7 @@ class AdminPlayStoreInstallsApiTest extends TestCase
 
     public function test_a_mistyped_date_keeps_the_number_usable(): void
     {
+        $this->useManualSource();
         $this->config('play_store_total_installs', '77');
         $this->config('play_store_installs_reported_at', 'kemarin sore');
 
@@ -111,6 +125,7 @@ class AdminPlayStoreInstallsApiTest extends TestCase
     public function test_generated_at_reports_the_current_time(): void
     {
         $this->travelTo(CarbonImmutable::parse('2026-08-31T04:00:00+00:00'));
+        $this->useManualSource();
         $this->config('play_store_total_installs', '5');
 
         Passport::actingAs($this->admin);
@@ -118,6 +133,33 @@ class AdminPlayStoreInstallsApiTest extends TestCase
         $this->getJson('/api/v1/admin/analytics/play-store-installs')
             ->assertOk()
             ->assertJsonPath('data.generated_at', '2026-08-31T04:00:00+00:00');
+    }
+
+    public function test_default_source_counts_unique_devices_that_opened_the_app(): void
+    {
+        // Angka manual dibiarkan kosong: yang tampil harus tetap berupa angka,
+        // bukan keadaan belum diisi.
+        $owner = User::factory()->create();
+        foreach (['device-a', 'device-b'] as $deviceId) {
+            DB::table('user_devices')->insert([
+                'id' => (string) Str::ulid(),
+                'user_id' => $owner->id,
+                'device_id' => $deviceId,
+                'platform' => 'android',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+        PlayStoreInstallsService::bustCache();
+
+        Passport::actingAs($this->admin);
+
+        $this->getJson('/api/v1/admin/analytics/play-store-installs')
+            ->assertOk()
+            ->assertJsonPath('data.configured', true)
+            ->assertJsonPath('data.total_installs', 2)
+            ->assertJsonPath('data.source', 'unique_devices')
+            ->assertJsonPath('data.reported_at', null);
     }
 
     private function config(string $key, string $value): void
