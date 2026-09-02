@@ -26,6 +26,13 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->api(prepend: [
             ForceJsonResponse::class,
+            // Sakelar maintenance dipasang pada grup, bukan per-route, supaya
+            // route baru ikut tertutup tanpa harus diingat satu per satu.
+            // Pengecualiannya terdaftar di `config/maintenance.php`.
+            CheckMaintenance::class,
+        ]);
+        $middleware->web(prepend: [
+            CheckMaintenance::class,
         ]);
         $middleware->alias([
             'check.maintenance' => CheckMaintenance::class,

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AppConfig;
 use App\Models\AppVersion;
 use App\Support\ApiResponse;
+use App\Support\Maintenance;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -41,6 +42,13 @@ class AppController extends Controller
      */
     public function config(): JsonResponse
     {
-        return ApiResponse::success(AppConfig::allPublic());
+        // Endpoint ini sengaja dikecualikan dari sakelar maintenance
+        // (`config/maintenance.php`): justru inilah satu-satunya cara klien
+        // mengetahui bahwa sistem sedang mati beserta alasannya. Status dari
+        // `.env` ditimpakan di atas nilai database supaya keduanya tidak
+        // pernah saling bertentangan.
+        return ApiResponse::success(
+            array_merge(AppConfig::allPublic(), Maintenance::payload())
+        );
     }
 }

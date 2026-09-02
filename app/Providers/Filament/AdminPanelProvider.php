@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Widgets\StarterOverview;
+use App\Http\Middleware\CheckMaintenance;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -49,6 +50,11 @@ class AdminPanelProvider extends PanelProvider
                 AccountWidget::class,
             ])
             ->middleware([
+                // Panel ini punya stack sendiri, tidak memakai grup `web`,
+                // jadi sakelar maintenance harus didaftarkan terpisah agar
+                // `TRIVA_MAINTENANCE_ALLOW_ADMIN=false` benar-benar mengunci
+                // back-office. Default-nya panel tetap dibiarkan hidup.
+                CheckMaintenance::class,
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,
