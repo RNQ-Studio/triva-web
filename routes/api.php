@@ -60,9 +60,11 @@ Route::prefix('v1')->group(function (): void {
     Route::get('health', HealthController::class);
 
     Route::post('analytics/visits', [VisitController::class, 'store'])
-        ->middleware(['throttle:visit-ingestion', 'check.maintenance']);
+        ->middleware('throttle:visit-ingestion');
 
-    // Unauthenticated app info endpoints (no maintenance check — needed to show maintenance message)
+    // Info aplikasi tanpa autentikasi. Dikecualikan dari sakelar maintenance
+    // lewat `config/maintenance.php` — klien membacanya justru untuk tahu
+    // bahwa sistem sedang mati beserta pesannya.
     Route::prefix('app')->group(function (): void {
         Route::get('version', [AppController::class, 'version'])->middleware('throttle:60,1');
         Route::get('config', [AppController::class, 'config'])->middleware('throttle:60,1');
@@ -75,29 +77,28 @@ Route::prefix('v1')->group(function (): void {
     });
 
     // OTP endpoints (unauthenticated, heavily throttled)
-    Route::prefix('auth/otp')->middleware(['throttle:10,1', 'check.maintenance'])->group(function (): void {
+    Route::prefix('auth/otp')->middleware('throttle:10,1')->group(function (): void {
         Route::post('send', [OtpController::class, 'send']);
         Route::post('verify', [OtpController::class, 'verify']);
     });
 
     Route::prefix('auth')->group(function (): void {
-        Route::post('register', [AuthController::class, 'register'])->middleware(['throttle:6,1', 'check.maintenance']);
-        Route::post('login', [AuthController::class, 'login'])->middleware(['throttle:6,1', 'check.maintenance']);
-        Route::post('google', [AuthController::class, 'google'])->middleware(['throttle:6,1', 'check.maintenance']);
-        Route::post('refresh', [AuthController::class, 'refresh'])->middleware(['throttle:6,1', 'check.maintenance']);
+        Route::post('register', [AuthController::class, 'register'])->middleware('throttle:6,1');
+        Route::post('login', [AuthController::class, 'login'])->middleware('throttle:6,1');
+        Route::post('google', [AuthController::class, 'google'])->middleware('throttle:6,1');
+        Route::post('refresh', [AuthController::class, 'refresh'])->middleware('throttle:6,1');
         Route::post('forgot-password', [PasswordResetController::class, 'sendResetLink'])
-            ->middleware(['throttle:6,1', 'check.maintenance']);
+            ->middleware('throttle:6,1');
         Route::post('reset-password', [PasswordResetController::class, 'reset'])
-            ->middleware(['throttle:6,1', 'check.maintenance']);
+            ->middleware('throttle:6,1');
         Route::get('password/reset/{token}', function (string $token) {
             return ApiResponse::success(['token' => $token], 'Password reset token received.');
-        })->name('password.reset')->middleware(['check.maintenance']);
+        })->name('password.reset');
 
         Route::get('email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
-            ->name('verification.verify')
-            ->middleware(['check.maintenance']);
+            ->name('verification.verify');
 
-        Route::middleware(['auth:api', 'check.maintenance'])->group(function (): void {
+        Route::middleware(['auth:api'])->group(function (): void {
             Route::post('email/send-verification', [EmailVerificationController::class, 'sendVerification'])
                 ->middleware('throttle:6,1');
             Route::post('email/verify', [EmailVerificationController::class, 'verify']);
@@ -117,11 +118,11 @@ Route::prefix('v1')->group(function (): void {
 
     // Promo halaman depan terbuka untuk web dan landing page yang belum login.
     Route::get('promotions', [PromotionController::class, 'index'])
-        ->middleware(['throttle:60,1', 'check.maintenance']);
+        ->middleware('throttle:60,1');
 
     Route::apiResource('quotes', QuoteController::class);
 
-    Route::middleware(['auth:api', 'check.maintenance'])->group(function (): void {
+    Route::middleware(['auth:api'])->group(function (): void {
         Route::get('regions/provinces', [RegionController::class, 'provinces'])
             ->middleware('throttle:60,1');
         Route::get('vehicle-makes', [VehicleMakeController::class, 'index'])
