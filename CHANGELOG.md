@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Sakelar maintenance mode TRIVA yang bersumber dari `.env` production (`TRIVA_MAINTENANCE_MODE` dan kawan-kawannya, lihat `config/maintenance.php`). Menutup grup middleware `api` dan `web` sekaligus dengan allowlist eksplisit, membalas `503` + `Retry-After` + kode `MAINTENANCE_MODE` untuk API, dan merender halaman maintenance mandiri untuk web. `GET /api/v1/app/config` sengaja tetap terbuka dan kini melaporkan `maintenance_mode`, `maintenance_title`, `maintenance_message`, serta `maintenance_until`, supaya build aplikasi berikutnya bisa menampilkan halaman maintenance sesungguhnya tanpa perubahan backend lagi. Build Android yang beredar saat ini belum membaca field tersebut dan memetakan 503 ke teks error generiknya sendiri — cukup untuk menghalangi pemakaian, tanpa mewajibkan update aplikasi. Nilai `app_configs` lama tetap dihormati sebagai fallback saat `.env` tidak menyetel apa pun.
+- `scripts/maintenance.sh` untuk menyalakan/mematikan sakelar tersebut di server production lewat ssh, termasuk `config:cache` yang wajib menyertainya.
 - Quotes Management API under the `api/v1` prefix: public (no auth required) full CRUD plus combined search (`filter[search]` across text and author via a `scopeSearch` ILIKE scope), field filters, sorting, and pagination.
 - Filament back-office resource for Quotes (modular `Schemas`/`Tables`/`Pages` structure under the `Data Master` navigation group), accessible by `admin` and `staff` roles.
 - Automated feature tests for the Quotes API (guest access, search/filter/sort/pagination, full CRUD cycle) and back-office page smoke tests.
