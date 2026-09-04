@@ -72,7 +72,7 @@ class ToyotaServiceBookingStatusController extends Controller
     /** @return array<string, mixed> */
     private function viewData(ToyotaServiceBooking $booking): array
     {
-        $timezone = $booking->serviceLocation?->timezone ?? 'Asia/Jakarta';
+        $timezone = $booking->serviceLocation->timezone;
         $slot = $booking->confirmed_start_at ?? $booking->primary_start_at;
         $slotEnd = $booking->confirmed_end_at ?? $booking->primary_end_at;
 
@@ -85,7 +85,7 @@ class ToyotaServiceBookingStatusController extends Controller
                 ToyotaServicePublicStatusService::STAGE_PROCESSING => 'Diproses',
                 ToyotaServicePublicStatusService::STAGE_COMPLETED => 'Selesai',
             ],
-            'schedule' => $slot === null || $slotEnd === null ? null : sprintf(
+            'schedule' => sprintf(
                 '%s, %s-%s',
                 $slot->copy()->setTimezone($timezone)->translatedFormat('l, d F Y'),
                 $slot->copy()->setTimezone($timezone)->format('H:i'),

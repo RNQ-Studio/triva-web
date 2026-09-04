@@ -83,7 +83,7 @@ class ToyotaServicePublicStatusService
 
             match ($stage) {
                 self::STAGE_PROCESSING => $this->startProcessing($locked),
-                self::STAGE_COMPLETED => $this->complete($locked),
+                default => $this->complete($locked),
             };
 
             return $locked->refresh();
