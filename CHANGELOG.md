@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Halaman web publik bertoken `GET/POST /booking-servis/{public_token}` untuk PIC cabang memperbarui status booking servis Toyota (menunggu → diproses → selesai) tanpa login; kolom `toyota_service_bookings.public_token` dan field `status_update_url` pada resource booking (revisi 4 September 2026).
+- Simulasi kredit cepat ACC: `config/credit_acc.php` (rate card dari lembar kerja Simulasi_ACC), `AccCreditCalculator`, `GET /api/v1/credit/quick/rate-card`, `POST /api/v1/credit/quick`; hasil tersimpan sebagai `CreditSimulation` dan memberi notifikasi in-app + push ke semua admin aktif (`AdminNotificationService`).
+- Kolom `credit_programs.unit_key` dan `image_path` (unggah gambar unit di Filament), seed empat unit rekomendasi demo (Veloz Hybrid, Zenix Hybrid, Innova Reborn, Raize); `GET /appraisals/{appraisal}/upgrade-options` kini memilih unit berdasarkan rentang harga appraisal.
+- Tabel `sales_contacts` + Filament "Data Sales" (nama, foto, WhatsApp, peran Sales/SPV) + `GET /api/v1/sales-contacts`.
+- Tabel `home_banners` + Filament "Banner Beranda" + `GET /api/v1/banners` untuk slider iklan beranda aplikasi.
 - Sakelar maintenance mode TRIVA yang bersumber dari `.env` production (`TRIVA_MAINTENANCE_MODE` dan kawan-kawannya, lihat `config/maintenance.php`). Menutup grup middleware `api` dan `web` sekaligus dengan allowlist eksplisit, membalas `503` + `Retry-After` + kode `MAINTENANCE_MODE` untuk API, dan merender halaman maintenance mandiri untuk web. `GET /api/v1/app/config` sengaja tetap terbuka dan kini melaporkan `maintenance_mode`, `maintenance_title`, `maintenance_message`, serta `maintenance_until`, supaya build aplikasi berikutnya bisa menampilkan halaman maintenance sesungguhnya tanpa perubahan backend lagi. Build Android yang beredar saat ini belum membaca field tersebut dan memetakan 503 ke teks error generiknya sendiri — cukup untuk menghalangi pemakaian, tanpa mewajibkan update aplikasi. Nilai `app_configs` lama tetap dihormati sebagai fallback saat `.env` tidak menyetel apa pun.
 - `scripts/maintenance.sh` untuk menyalakan/mematikan sakelar tersebut di server production lewat ssh, termasuk `config:cache` yang wajib menyertainya.
 - Quotes Management API under the `api/v1` prefix: public (no auth required) full CRUD plus combined search (`filter[search]` across text and author via a `scopeSearch` ILIKE scope), field filters, sorting, and pagination.
@@ -29,6 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Modal-based `EditAction` in both list view (table record actions) and detail view (header actions) in the Filament Back-Office Asset Resource to allow editing asset metadata (`category`, `retain_until`, `is_protected`) while dynamically hiding it when an asset is hard deleted.
 
 ### Changed
+- Jawaban kondisi appraisal: `service_history` menerima `authorized|general`, `ownership` menerima `second_or_more` (nilai lama tetap diterima); label penyesuaian dan panel admin memakai deskripsi kondisi, bukan "Grade"; ban `damaged` dilabeli "Aus".
+- `GET /toyota-service/options` hanya menawarkan `contact_channels` WhatsApp; `GET /admin/toyota-service/options` hanya menawarkan `benefit_types` SSC.
 - Displayed `hard_deleted_at` timestamp in Filament Back-Office detail view infolist schema (`AssetInfolist`) under the Metadata & Audit section to show when an asset was hard deleted.
 - Resolved `status` badge visual inconsistency in Filament Back-Office detail view infolist schema by mapping status colors (`success`, `warning`, `danger`) to match the list table.
 
