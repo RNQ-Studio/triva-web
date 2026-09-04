@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\V1\CreditCatalogController;
 use App\Http\Controllers\Api\V1\CreditSimulationController;
 use App\Http\Controllers\Api\V1\EmailVerificationController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\HomeBannerController;
 use App\Http\Controllers\Api\V1\MenuUsageController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OtoxpertController;
@@ -31,6 +32,7 @@ use App\Http\Controllers\Api\V1\PasswordResetController;
 use App\Http\Controllers\Api\V1\PromotionController;
 use App\Http\Controllers\Api\V1\QuoteController;
 use App\Http\Controllers\Api\V1\RegionController;
+use App\Http\Controllers\Api\V1\SalesContactController;
 use App\Http\Controllers\Api\V1\TagController;
 use App\Http\Controllers\Api\V1\ToyotaServiceController;
 use App\Http\Controllers\Api\V1\VehicleBenefitController;
@@ -117,6 +119,10 @@ Route::prefix('v1')->group(function (): void {
     });
 
     // Promo halaman depan terbuka untuk web dan landing page yang belum login.
+    Route::get('banners', [HomeBannerController::class, 'index'])
+        ->middleware('throttle:60,1');
+    Route::get('sales-contacts', [SalesContactController::class, 'index'])
+        ->middleware('throttle:60,1');
     Route::get('promotions', [PromotionController::class, 'index'])
         ->middleware('throttle:60,1');
 
