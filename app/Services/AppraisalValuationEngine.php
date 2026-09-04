@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Appraisal;
+use App\Support\AppraisalConditionLabels;
 use App\Support\Enums\AppraisalConfidence;
 use App\Support\Enums\AppraisalMarketEstimateStatus;
 use Illuminate\Support\Carbon;
@@ -527,7 +528,10 @@ class AppraisalValuationEngine
         if ($gradePercent > 0.0) {
             $adjustments[] = [
                 'code' => 'condition_grade',
-                'label' => 'Grade kondisi '.strtoupper((string) $appraisal->condition_grade),
+                'label' => 'Kondisi kendaraan: '.AppraisalConditionLabels::label(
+                    AppraisalConditionLabels::CONDITION_GRADE,
+                    $appraisal->condition_grade,
+                ),
                 'percentage' => $gradePercent,
             ];
         }
@@ -543,12 +547,14 @@ class AppraisalValuationEngine
             ['field' => 'tax_status', 'value' => 'overdue', 'code' => 'tax', 'label' => 'Status pajak', 'percentage' => 2.0],
             ['field' => 'flood_history', 'value' => 'yes', 'code' => 'flood', 'label' => 'Riwayat banjir', 'percentage' => 15.0],
             ['field' => 'major_accident_history', 'value' => 'yes', 'code' => 'major_accident', 'label' => 'Riwayat tabrakan berat', 'percentage' => 12.0],
+            ['field' => 'service_history', 'value' => 'general', 'code' => 'service_general', 'label' => 'Riwayat servis di bengkel umum', 'percentage' => 1.0],
             ['field' => 'service_history', 'value' => 'partial', 'code' => 'service_partial', 'label' => 'Riwayat servis sebagian', 'percentage' => 1.0],
             ['field' => 'service_history', 'value' => 'none', 'code' => 'service_none', 'label' => 'Riwayat servis tidak tersedia', 'percentage' => 2.5],
+            ['field' => 'ownership', 'value' => 'second_or_more', 'code' => 'ownership_second_or_more', 'label' => 'Kepemilikan tangan kedua atau lebih', 'percentage' => 0.5],
             ['field' => 'ownership', 'value' => 'second', 'code' => 'ownership_second', 'label' => 'Kepemilikan kedua', 'percentage' => 0.5],
             ['field' => 'ownership', 'value' => 'more', 'code' => 'ownership_more', 'label' => 'Kepemilikan lebih dari dua', 'percentage' => 1.0],
             ['field' => 'engine_condition', 'value' => 'wet', 'code' => 'engine_wet', 'label' => 'Mesin basah atau rembes', 'percentage' => 4.0],
-            ['field' => 'tyre_condition', 'value' => 'damaged', 'code' => 'tyre_damaged', 'label' => 'Ban perlu diganti', 'percentage' => 2.0],
+            ['field' => 'tyre_condition', 'value' => 'damaged', 'code' => 'tyre_damaged', 'label' => 'Ban aus', 'percentage' => 2.0],
         ];
         foreach ($penalties as $penalty) {
             if ($appraisal->{$penalty['field']} === $penalty['value']) {
@@ -579,7 +585,7 @@ class AppraisalValuationEngine
     }
 
     /**
-     * Potongan mengikuti tier kondisi OLX. Grade yang belum diisi -- appraisal
+     * Potongan mengikuti empat tier kondisi kendaraan. Tier yang belum diisi -- appraisal
      * lama sebelum pertanyaan ini ada -- tidak dipotong sama sekali.
      */
     private function conditionGradePercent(Appraisal $appraisal): float

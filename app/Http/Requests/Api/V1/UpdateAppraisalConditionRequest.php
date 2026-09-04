@@ -21,8 +21,11 @@ class UpdateAppraisalConditionRequest extends FormRequest
             'tax_status' => ['required', Rule::in(['active', 'overdue', 'unknown'])],
             'flood_history' => ['required', Rule::in(['yes', 'no', 'unknown'])],
             'major_accident_history' => ['required', Rule::in(['yes', 'no', 'unknown'])],
-            'service_history' => ['required', Rule::in(['complete', 'partial', 'none', 'unknown'])],
-            'ownership' => ['required', Rule::in(['first', 'second', 'more', 'unknown'])],
+            // Revisi 4 September 2026 menyederhanakan pilihan menjadi bengkel
+            // authorized/umum dan tangan pertama/kedua-atau-lebih. Nilai lama
+            // tetap diterima karena pemasangan lama masih mengirimkannya.
+            'service_history' => ['required', Rule::in(['authorized', 'general', 'complete', 'partial', 'none', 'unknown'])],
+            'ownership' => ['required', Rule::in(['first', 'second_or_more', 'second', 'more', 'unknown'])],
             // Aplikasi tidak punya gerbang paksa-perbarui, sehingga pemasangan
             // lama masih mengirim payload tanpa tiga isian ini. Nilainya
             // diterima opsional -- aplikasi versi baru sendiri yang mewajibkan

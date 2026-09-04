@@ -167,6 +167,38 @@ class AppraisalValuationEngineTest extends TestCase
         self::assertGreaterThan($offers['d'], $offers['c']);
     }
 
+    public function test_condition_adjustment_describes_the_condition_without_grade_wording(): void
+    {
+        $appraisal = $this->appraisal(fuelType: 'gasoline');
+        $appraisal->condition_grade = 'c';
+
+        $result = app(AppraisalValuationEngine::class)->estimate(
+            $appraisal,
+            $this->comparableListings(fuelType: 'gasoline'),
+        );
+
+        $adjustment = collect($result['adjustments'])->firstWhere('code', 'condition_grade');
+        self::assertSame('Kondisi kendaraan: Perlu perbaikan mesin dan transmisi', $adjustment['label']);
+        self::assertStringNotContainsStringIgnoringCase('grade', $adjustment['label']);
+    }
+
+    public function test_general_workshop_service_and_later_ownership_are_penalised(): void
+    {
+        $engine = app(AppraisalValuationEngine::class);
+        $listings = $this->comparableListings(fuelType: 'gasoline');
+        $baseline = $engine->estimate($this->appraisal(fuelType: 'gasoline'), $listings);
+
+        $appraisal = $this->appraisal(fuelType: 'gasoline');
+        $appraisal->service_history = 'general';
+        $appraisal->ownership = 'second_or_more';
+        $result = $engine->estimate($appraisal, $listings);
+
+        $codes = collect($result['adjustments'])->pluck('code');
+        self::assertTrue($codes->contains('service_general'));
+        self::assertTrue($codes->contains('ownership_second_or_more'));
+        self::assertLessThan($baseline['trade_in_high'], $result['trade_in_high']);
+    }
+
     public function test_an_appraisal_without_a_grade_is_not_penalised(): void
     {
         $appraisal = $this->appraisal(fuelType: 'gasoline');

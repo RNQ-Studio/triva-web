@@ -509,6 +509,32 @@ class AppraisalApiTest extends TestCase
     }
 
     /** @return array<string, int|string> */
+    public function test_condition_accepts_the_simplified_service_and_ownership_answers(): void
+    {
+        Passport::actingAs($this->customer);
+        $appraisal = $this->createDraft();
+
+        $this->putJson(
+            "/api/v1/appraisals/{$appraisal->id}/vehicle-condition",
+            [
+                ...$this->conditionPayload(),
+                'service_history' => 'general',
+                'ownership' => 'second_or_more',
+                'tyre_condition' => 'damaged',
+            ],
+        )
+            ->assertOk()
+            ->assertJsonPath('data.condition.service_history', 'general')
+            ->assertJsonPath('data.condition.ownership', 'second_or_more');
+
+        $this->putJson(
+            "/api/v1/appraisals/{$appraisal->id}/vehicle-condition",
+            [...$this->conditionPayload(), 'service_history' => 'authorized'],
+        )
+            ->assertOk()
+            ->assertJsonPath('data.condition.service_history', 'authorized');
+    }
+
     private function conditionPayload(): array
     {
         return [

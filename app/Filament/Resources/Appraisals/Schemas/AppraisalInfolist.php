@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Appraisals\Schemas;
 
 use App\Models\Appraisal;
+use App\Support\AppraisalConditionLabels;
 use App\Support\Enums\AppraisalStatus;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
@@ -46,15 +47,21 @@ class AppraisalInfolist
                     TextEntry::make('tax_status')->label('Pajak')->placeholder('Belum diisi'),
                     TextEntry::make('flood_history')->label('Riwayat banjir')->placeholder('Belum diisi'),
                     TextEntry::make('major_accident_history')->label('Tabrakan berat')->placeholder('Belum diisi'),
-                    TextEntry::make('service_history')->label('Riwayat servis')->placeholder('Belum diisi'),
-                    TextEntry::make('ownership')->label('Kepemilikan')->placeholder('Belum diisi'),
+                    TextEntry::make('service_history')
+                        ->label('Riwayat servis')
+                        ->placeholder('Belum diisi')
+                        ->formatStateUsing(fn (string $state): string => AppraisalConditionLabels::label(AppraisalConditionLabels::SERVICE_HISTORY, $state) ?? $state),
+                    TextEntry::make('ownership')
+                        ->label('Kepemilikan')
+                        ->placeholder('Belum diisi')
+                        ->formatStateUsing(fn (string $state): string => AppraisalConditionLabels::label(AppraisalConditionLabels::OWNERSHIP, $state) ?? $state),
                     TextEntry::make('condition_percentage')
                         ->label('Kondisi (data lama)')
                         ->suffix('%'),
                     TextEntry::make('condition_grade')
-                        ->label('Grade kondisi')
+                        ->label('Kondisi kendaraan')
                         ->placeholder('Belum diisi')
-                        ->formatStateUsing(fn (string $state): string => 'Grade '.strtoupper($state)),
+                        ->formatStateUsing(fn (string $state): string => AppraisalConditionLabels::label(AppraisalConditionLabels::CONDITION_GRADE, $state) ?? $state),
                     TextEntry::make('engine_condition')
                         ->label('Kondisi mesin')
                         ->placeholder('Belum diisi')
@@ -66,11 +73,7 @@ class AppraisalInfolist
                     TextEntry::make('tyre_condition')
                         ->label('Kondisi ban')
                         ->placeholder('Belum diisi')
-                        ->formatStateUsing(fn (string $state): string => match ($state) {
-                            'damaged' => 'Rusak',
-                            'normal' => 'Normal',
-                            default => $state,
-                        }),
+                        ->formatStateUsing(fn (string $state): string => AppraisalConditionLabels::label(AppraisalConditionLabels::TYRE_CONDITION, $state) ?? $state),
                     TextEntry::make('current_photos_count')->label('Foto saat ini')->suffix(' / 5'),
                 ]),
             Section::make('Harapan harga pelanggan')
