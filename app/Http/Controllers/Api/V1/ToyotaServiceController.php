@@ -118,13 +118,13 @@ class ToyotaServiceController extends Controller
                 ])
                 ->values()
                 ->all(),
-            'contact_channels' => collect(ToyotaServiceContactChannel::cases())
-                ->map(fn (ToyotaServiceContactChannel $channel): array => [
-                    'value' => $channel->value,
-                    'label' => $channel->label(),
-                ])
-                ->values()
-                ->all(),
+            // Revisi 4 September 2026: konfirmasi booking hanya lewat WhatsApp.
+            // Enum tetap menyimpan telepon/email karena booking lama dan
+            // pemasangan aplikasi lama masih mengirimkannya.
+            'contact_channels' => [[
+                'value' => ToyotaServiceContactChannel::Whatsapp->value,
+                'label' => ToyotaServiceContactChannel::Whatsapp->label(),
+            ]],
             'locations' => ToyotaServiceLocationResource::collection($locations)->resolve($request),
             'service_types' => ToyotaServiceTypeResource::collection($serviceTypes)->resolve($request),
             'ths_coverage' => ToyotaThsCoverageResource::collection($coverage)->resolve($request),

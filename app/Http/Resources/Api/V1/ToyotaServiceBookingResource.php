@@ -19,6 +19,7 @@ class ToyotaServiceBookingResource extends JsonResource
         return [
             'id' => $this->id,
             'reference_no' => $this->reference_no,
+            'status_update_url' => $this->statusUpdateUrl(),
             'status' => $this->status->value,
             'status_label' => $this->status->customerLabel(),
             'allowed_customer_actions' => $this->allowedCustomerActions(),

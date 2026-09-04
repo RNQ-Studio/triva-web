@@ -87,6 +87,8 @@ class ToyotaServiceApiTest extends TestCase
             ->assertJsonPath('data.locations.0.code', 'auto2000-kertajaya')
             ->assertJsonPath('data.locations.0.phone', '0315952000')
             ->assertJsonPath('data.photo_upload.type', 'toyota-service-photo')
+            ->assertJsonCount(1, 'data.contact_channels')
+            ->assertJsonPath('data.contact_channels.0.value', 'whatsapp')
             ->assertJsonCount(4, 'data.service_types')
             ->assertJsonPath('data.fulfillment_types.1.is_available', false)
             ->assertJsonPath(
@@ -246,6 +248,7 @@ class ToyotaServiceApiTest extends TestCase
             ->postJson('/api/v1/toyota-service/bookings', $this->bookingPayload())
             ->assertCreated()
             ->assertJsonPath('data.status', 'awaiting_confirmation')
+            ->assertJsonPath('data.status_update_url', fn (mixed $url): bool => is_string($url) && str_contains($url, '/booking-servis/'))
             ->assertJsonPath('data.is_confirmed', false)
             ->assertJsonPath('data.requested_slots.primary.date', '2026-07-29')
             ->assertJsonPath('data.service_location.phone', '0315952000')

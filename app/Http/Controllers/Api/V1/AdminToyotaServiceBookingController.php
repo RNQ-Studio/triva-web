@@ -99,7 +99,9 @@ class AdminToyotaServiceBookingController extends Controller
             'service_types' => ToyotaServiceTypeResource::collection(
                 ToyotaServiceType::query()->effective()->orderBy('sort_order')->get()
             ),
-            'benefit_types' => collect(VehicleBenefitType::cases())
+            // Revisi 4 September 2026: T-Care dan Warranty tidak lagi ditampilkan
+            // di detail booking; petugas hanya memverifikasi SSC.
+            'benefit_types' => collect([VehicleBenefitType::Ssc])
                 ->map(fn (VehicleBenefitType $type): array => [
                     'value' => $type->value,
                     'label' => $type->label(),

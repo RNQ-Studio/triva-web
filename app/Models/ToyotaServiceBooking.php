@@ -15,11 +15,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use Spatie\Activitylog\LogOptions;
 
 /**
  * @property string $id
  * @property string $reference_no
+ * @property string|null $public_token
  * @property int $user_id
  * @property string $vehicle_id
  * @property string $service_location_id
@@ -85,8 +87,31 @@ class ToyotaServiceBooking extends Model
     /** @use HasFactory<ToyotaServiceBookingFactory> */
     use HasFactory, HasUuids, LogsToyotaServiceActivity;
 
+    protected static function booted(): void
+    {
+        // Token publik dibuat bersama booking supaya tautan pembaruan status
+        // sudah tersedia pada respons pembuatan dan ikut ke pesan WhatsApp.
+        static::creating(function (self $booking): void {
+            $booking->public_token ??= (string) Str::uuid();
+        });
+    }
+
+    /**
+     * Tautan publik (tanpa login) bagi PIC cabang untuk memperbarui status
+     * booking dari menunggu, diproses, hingga selesai.
+     */
+    public function statusUpdateUrl(): ?string
+    {
+        if (blank($this->public_token)) {
+            return null;
+        }
+
+        return route('toyota-service.status', ['token' => $this->public_token]);
+    }
+
     protected $fillable = [
         'reference_no',
+        'public_token',
         'fulfillment_type',
         'status',
         'idempotency_key',
