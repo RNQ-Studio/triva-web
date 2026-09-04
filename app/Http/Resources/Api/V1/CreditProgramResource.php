@@ -26,6 +26,8 @@ class CreditProgramResource extends JsonResource
                 'approved_discount' => $this->approved_discount,
             ],
             'package_code' => $this->package_code,
+            'unit_key' => $this->unit_key,
+            'image_url' => $this->imageUrl(),
             'recommended_dp_basis_points' => $this->recommended_dp_basis_points,
             // DP anjuran paket -- SPEKTA memakai 20% -- supaya aplikasi bisa
             // langsung mengisikan nominalnya alih-alih memakai DP minimum.

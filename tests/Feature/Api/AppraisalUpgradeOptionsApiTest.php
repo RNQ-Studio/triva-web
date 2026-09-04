@@ -25,42 +25,66 @@ class AppraisalUpgradeOptionsApiTest extends TestCase
         $this->customer = User::factory()->create();
     }
 
-    public function test_it_offers_the_two_closest_units_a_step_above_the_appraised_car(): void
+    public function test_it_offers_veloz_hybrid_and_zenix_hybrid_above_150_million(): void
     {
-        $appraisal = $this->appraisalWorth(120_000_000);
+        $appraisal = $this->appraisalWorth(176_000_000);
         Passport::actingAs($this->customer);
 
         $response = $this->getJson(
             "/api/v1/appraisals/{$appraisal->id}/upgrade-options",
         )->assertOk();
 
-        self::assertSame(120_000_000, $response->json('data.trade_in_value'));
+        self::assertSame(176_000_000, $response->json('data.trade_in_value'));
         $options = $response->json('data.options');
         self::assertCount(2, $options);
-        // Termurah dulu: satu tingkat di atas, bukan lompat kelas.
-        self::assertSame('UP-200', $options[0]['program_code']);
-        self::assertSame('UP-300', $options[1]['program_code']);
+        // Harga bawah dulu, lalu harga atas.
+        self::assertSame('veloz_hybrid', $options[0]['unit_key']);
+        self::assertSame('zenix_hybrid', $options[1]['unit_key']);
+        self::assertStringEndsWith('/storage/credit-units/veloz.jpg', $options[0]['image_url']);
         foreach ($options as $option) {
+            self::assertSame(176_000_000, $option['down_payment_from_appraisal']);
+            self::assertSame(60, $option['tenor_months']);
             self::assertGreaterThan(0, $option['monthly_installment']);
-            self::assertSame(
-                120_000_000,
-                $option['down_payment_from_appraisal'],
-            );
+            self::assertGreaterThan(0, $option['annual_flat_rate_basis_points']);
         }
     }
 
-    public function test_units_whose_minimum_down_payment_exceeds_the_appraisal_are_skipped(): void
+    public function test_it_offers_veloz_hybrid_and_reborn_between_100_and_150_million(): void
     {
-        // Harga appraisal hanya 30 juta: DP minimum 20% dari unit 200 juta
-        // adalah 40 juta, jadi unit itu tidak boleh ditawarkan.
-        $appraisal = $this->appraisalWorth(30_000_000);
+        $appraisal = $this->appraisalWorth(120_000_000);
         Passport::actingAs($this->customer);
 
         $options = $this->getJson(
             "/api/v1/appraisals/{$appraisal->id}/upgrade-options",
         )->assertOk()->json('data.options');
 
-        self::assertSame([], $options);
+        self::assertSame(['veloz_hybrid', 'innova_reborn'], array_column($options, 'unit_key'));
+    }
+
+    public function test_it_offers_raize_and_veloz_hybrid_below_100_million(): void
+    {
+        $appraisal = $this->appraisalWorth(60_000_000);
+        Passport::actingAs($this->customer);
+
+        $options = $this->getJson(
+            "/api/v1/appraisals/{$appraisal->id}/upgrade-options",
+        )->assertOk()->json('data.options');
+
+        self::assertSame(['raize', 'veloz_hybrid'], array_column($options, 'unit_key'));
+        self::assertSame(60_000_000, $options[0]['down_payment_from_appraisal']);
+    }
+
+    public function test_units_not_configured_by_the_branch_are_skipped(): void
+    {
+        $appraisal = $this->appraisalWorth(120_000_000);
+        CreditProgram::query()->where('unit_key', 'innova_reborn')->delete();
+        Passport::actingAs($this->customer);
+
+        $options = $this->getJson(
+            "/api/v1/appraisals/{$appraisal->id}/upgrade-options",
+        )->assertOk()->json('data.options');
+
+        self::assertSame(['veloz_hybrid'], array_column($options, 'unit_key'));
     }
 
     public function test_an_appraisal_without_a_result_returns_no_options(): void
@@ -88,15 +112,22 @@ class AppraisalUpgradeOptionsApiTest extends TestCase
 
     private function appraisalWorth(int $tradeInHigh): Appraisal
     {
-        foreach ([200_000_000, 300_000_000, 400_000_000] as $index => $otr) {
+        CreditProgram::query()->delete();
+        $units = [
+            ['veloz_hybrid', 'Veloz Hybrid', 405_000_000, 'credit-units/veloz.jpg'],
+            ['zenix_hybrid', 'Kijang Innova Zenix Hybrid', 490_000_000, null],
+            ['innova_reborn', 'Kijang Innova Reborn', 425_000_000, null],
+            ['raize', 'Raize', 275_000_000, null],
+        ];
+        foreach ($units as [$key, $model, $otr, $image]) {
             CreditProgram::factory()->create([
-                'program_code' => 'UP-'.($otr / 1_000_000),
+                'program_code' => 'UNIT-'.strtoupper($key),
                 'city' => 'Surabaya',
+                'unit_key' => $key,
+                'image_path' => $image,
+                'vehicle_model' => $model,
                 'otr_price' => $otr,
                 'approved_discount' => 0,
-                'minimum_dp_basis_points' => 2000,
-                'maximum_dp_basis_points' => 8000,
-                'vehicle_model' => 'Model '.$index,
             ]);
         }
 

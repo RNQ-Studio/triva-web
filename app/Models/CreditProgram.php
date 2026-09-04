@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -28,6 +29,8 @@ use Spatie\Activitylog\Traits\LogsActivity;
  * @property int $otr_price
  * @property int $approved_discount
  * @property string|null $package_code
+ * @property string|null $unit_key
+ * @property string|null $image_path
  * @property int|null $recommended_dp_basis_points
  * @property int $minimum_dp_basis_points
  * @property int $maximum_dp_basis_points
@@ -59,6 +62,8 @@ class CreditProgram extends Model
         'otr_price',
         'approved_discount',
         'package_code',
+        'unit_key',
+        'image_path',
         'recommended_dp_basis_points',
         'minimum_dp_basis_points',
         'maximum_dp_basis_points',
@@ -133,6 +138,16 @@ class CreditProgram extends Model
                 $builder->whereNull('effective_to')
                     ->orWhereDate('effective_to', '>=', $date);
             });
+    }
+
+    /** Gambar unit yang diunggah cabang lewat panel admin. */
+    public function imageUrl(): ?string
+    {
+        if (blank($this->image_path)) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->image_path);
     }
 
     /** @return array<string, int|string|null>|null */

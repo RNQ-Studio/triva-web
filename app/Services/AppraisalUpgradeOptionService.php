@@ -5,24 +5,26 @@ namespace App\Services;
 use App\Models\Appraisal;
 use App\Models\CreditProgram;
 use App\Models\User;
+use App\Services\Credit\AccCreditCalculator;
 use Illuminate\Support\Collection;
-use Illuminate\Validation\ValidationException;
 
 /**
- * Menyusun dua opsi unit baru Toyota yang uang mukanya tertutup oleh harga
- * appraisal pelanggan.
+ * Dua unit baru Toyota yang ditawarkan di halaman hasil appraisal, dengan harga
+ * appraisal sebagai uang muka.
  *
- * Notulensi 19 Agustus 2026 mengganti rentang harga dan data pembanding dengan
- * "simulasi 2 opsi kendaraan unit baru Toyota dengan menyesuaikan harga
- * appraisal sebagai DP unit baru (1 tingkat di atas unit pelanggan)", memakai
- * hitungan reguler. Yang dipilih adalah program termurah yang harganya masih di
- * atas nilai unit pelanggan dan DP minimumnya sudah tertutup hasil appraisal --
- * jadi pelanggan tidak ditawari unit yang uang mukanya belum tentu terjangkau.
+ * Revisi 4 September 2026 menetapkan unitnya berdasarkan rentang harga
+ * appraisal (>150 juta: Veloz Hybrid & Zenix Hybrid; 100-150 juta: Veloz
+ * Hybrid & Reborn; <100 juta: Raize & Veloz Hybrid) -- Veloz Hybrid selalu
+ * ada -- dan angsurannya dihitung dengan rate card ACC tenor 5 tahun. Unit
+ * dicari lewat `credit_programs.unit_key`; unit yang belum dikonfigurasi
+ * cabang dilewati alih-alih diganti unit lain.
  */
 class AppraisalUpgradeOptionService
 {
+    public const DEFAULT_TENOR_YEARS = 5;
+
     public function __construct(
-        private readonly CreditSimulationCalculator $calculator,
+        private readonly AccCreditCalculator $calculator,
     ) {}
 
     /**
@@ -40,21 +42,17 @@ class AppraisalUpgradeOptionService
         }
 
         // Angka yang dipakai adalah harga yang barusan dilihat pelanggan pada
-        // halaman hasil, bukan turunan lain, supaya DP di pop-up tidak berbeda
-        // dari harga yang dijanjikan.
+        // halaman hasil, supaya DP di kartu tidak berbeda dari harga yang
+        // dijanjikan.
         $tradeInValue = $result->trade_in_high;
+        $programs = $this->programs($this->unitKeysFor($tradeInValue));
+
         $options = [];
-
-        foreach ($this->candidates($appraisal, $tradeInValue) as $program) {
-            $option = $this->option($program, $appraisal, $user);
-            if ($option !== null) {
-                $options[] = $option;
-            }
-
-            if (count($options) === 2) {
-                break;
-            }
+        foreach ($programs as $program) {
+            $options[] = $this->option($program, $tradeInValue);
         }
+        // Harga bawah dulu, lalu harga atas.
+        usort($options, fn (array $a, array $b): int => $a['otr_price'] <=> $b['otr_price']);
 
         return [
             'trade_in_value' => $tradeInValue,
@@ -62,82 +60,84 @@ class AppraisalUpgradeOptionService
         ];
     }
 
-    /**
-     * Kandidat diurutkan dari yang paling dekat harganya, sehingga dua yang
-     * terpilih benar-benar satu tingkat di atas unit pelanggan dan bukan
-     * lompatan kelas yang tidak relevan.
-     *
-     * @return Collection<int, CreditProgram>
-     */
-    private function candidates(Appraisal $appraisal, int $tradeInValue)
+    /** @return list<string> */
+    public function unitKeysFor(int $tradeInValue): array
     {
-        return CreditProgram::query()
-            ->effective()
-            ->where('otr_price', '>', $tradeInValue)
-            ->when(
-                filled($appraisal->vehicle->city),
-                fn ($query) => $query->where('city', $appraisal->vehicle->city),
-            )
-            ->orderBy('otr_price')
-            ->orderBy('program_code')
-            ->limit(12)
-            ->get();
+        /** @var list<array{min: int, units: list<string>}> $rules */
+        $rules = config('credit_acc.appraisal_recommendations', []);
+        usort($rules, fn (array $a, array $b): int => $b['min'] <=> $a['min']);
+        foreach ($rules as $rule) {
+            if ($tradeInValue >= $rule['min']) {
+                return $rule['units'];
+            }
+        }
+
+        return [];
     }
 
     /**
-     * @return array<string, mixed>|null
+     * @param  list<string>  $unitKeys
+     * @return Collection<int, CreditProgram>
      */
-    private function option(
-        CreditProgram $program,
-        Appraisal $appraisal,
-        User $user,
-    ): ?array {
-        $tenor = $this->longestTenor($program);
-        if ($tenor === null) {
-            return null;
+    private function programs(array $unitKeys): Collection
+    {
+        if ($unitKeys === []) {
+            return new Collection;
         }
 
-        try {
-            $calculation = $this->calculator->calculate($user, $program, [
-                'otr_price' => $program->otr_price,
-                'cash_down_payment' => 0,
-                'trade_in_appraisal_id' => $appraisal->getKey(),
-                'manual_trade_in_value' => 0,
-                'use_trade_in_as_dp' => true,
-                'old_vehicle_payoff' => 0,
-                'tenor_months' => $tenor,
-                'accept_expired_appraisal' => true,
-            ]);
-        } catch (ValidationException) {
-            // Uang muka dari appraisal belum menutup batas program ini, atau
-            // justru melewati batas atasnya. Unit berikutnya yang dicoba.
-            return null;
-        }
+        $programs = CreditProgram::query()
+            ->effective()
+            ->whereIn('unit_key', $unitKeys)
+            ->orderByDesc('version')
+            ->get();
+
+        // Satu program per unit (versi tertinggi), diurutkan sesuai aturan.
+        return collect($unitKeys)
+            ->map(fn (string $key): ?CreditProgram => $programs->firstWhere('unit_key', $key))
+            ->filter()
+            ->values();
+    }
+
+    /** @return array<string, mixed> */
+    private function option(CreditProgram $program, int $tradeInValue): array
+    {
+        $tenorYears = self::DEFAULT_TENOR_YEARS;
+        $downPayment = min($tradeInValue, $program->otr_price);
+        $dpPercent = $program->otr_price === 0
+            ? 0
+            : intdiv($downPayment * 100, $program->otr_price);
+        $quote = $this->calculator->quoteWithRates(
+            otrPrice: $program->otr_price,
+            downPayment: $downPayment,
+            tenorYears: $tenorYears,
+            interestRateBps: $this->calculator->interestRateBps(
+                $this->calculator->vehicleClass($program->vehicle_model),
+                $dpPercent,
+                $tenorYears,
+            ),
+            insuranceRateBps: $this->calculator->insuranceRateBps(
+                $program->otr_price,
+                $tenorYears,
+            ),
+        );
 
         return [
             'program_id' => $program->getKey(),
             'program_code' => $program->program_code,
             'package_code' => $program->package_code,
+            'unit_key' => $program->unit_key,
+            'image_url' => $program->imageUrl(),
             'partner_name' => $program->partner_name,
             'program_name' => $program->program_name,
             'vehicle_model' => $program->vehicle_model,
             'vehicle_variant' => $program->vehicle_variant,
             'model_year' => $program->model_year,
             'otr_price' => $program->otr_price,
-            'tenor_months' => $tenor,
-            'down_payment_from_appraisal' => $calculation['calculation']['total_down_payment'],
-            'monthly_installment' => $calculation['calculation']['monthly_installment'],
+            'tenor_months' => $quote['tenor_months'],
+            'down_payment_from_appraisal' => $quote['down_payment'],
+            'monthly_installment' => $quote['monthly_installment'],
+            'annual_flat_rate_basis_points' => $quote['annual_flat_rate_basis_points'],
             'is_demo' => $program->is_demo,
         ];
-    }
-
-    private function longestTenor(CreditProgram $program): ?int
-    {
-        $months = collect($program->tenor_options)
-            ->map(fn (array $option): int => (int) ($option['tenor_months'] ?? 0))
-            ->filter(fn (int $value): bool => $value > 0)
-            ->max();
-
-        return $months === null ? null : (int) $months;
     }
 }

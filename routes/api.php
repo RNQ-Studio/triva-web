@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BodyPaintController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\CreditCatalogController;
+use App\Http\Controllers\Api\V1\CreditQuickSimulationController;
 use App\Http\Controllers\Api\V1\CreditSimulationController;
 use App\Http\Controllers\Api\V1\EmailVerificationController;
 use App\Http\Controllers\Api\V1\HealthController;
@@ -235,6 +236,11 @@ Route::prefix('v1')->group(function (): void {
                 ->middleware('throttle:60,1');
             Route::get('programs', [CreditCatalogController::class, 'programs'])
                 ->middleware('throttle:60,1');
+            // Simulasi cepat ACC (revisi 4 September 2026).
+            Route::get('quick/rate-card', [CreditQuickSimulationController::class, 'rateCard'])
+                ->middleware('throttle:60,1');
+            Route::post('quick', [CreditQuickSimulationController::class, 'store'])
+                ->middleware('throttle:30,1');
             Route::prefix('simulations')->group(function (): void {
                 Route::post(
                     'calculate',

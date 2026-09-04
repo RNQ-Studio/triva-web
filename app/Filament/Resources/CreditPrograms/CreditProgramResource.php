@@ -10,6 +10,7 @@ use App\Support\Enums\CreditProgramStatus;
 use BackedEnum;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -85,6 +86,18 @@ class CreditProgramResource extends Resource
                     ->columnSpan(2),
             ]),
             Section::make('Kendaraan dan OTR')->columns(3)->schema([
+                TextInput::make('unit_key')
+                    ->label('Kunci unit rekomendasi')
+                    ->maxLength(40)
+                    ->helperText('Isi veloz_hybrid, zenix_hybrid, innova_reborn, atau raize agar unit ini ditawarkan di hasil appraisal.'),
+                FileUpload::make('image_path')
+                    ->label('Gambar unit')
+                    ->image()
+                    ->disk('public')
+                    ->directory('credit-units')
+                    ->maxSize(5120)
+                    ->helperText('Foto unit untuk kartu rekomendasi appraisal. JPG/PNG/WEBP, maksimal 5 MB.')
+                    ->columnSpan(2),
                 TextInput::make('city')
                     ->label('Kota OTR')
                     ->required()
