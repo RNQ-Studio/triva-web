@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Jobs\SendPushNotificationJob;
 use App\Models\Notification;
 use App\Models\User;
+use App\Support\NotificationEmailCopy;
 use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -36,32 +37,42 @@ class AdminNotificationService
             ->where('is_active', true)
             ->get();
 
-        $notifications = [];
-        foreach ($admins as $admin) {
-            $notification = Notification::query()->create([
-                'user_id' => $admin->getKey(),
-                'title' => $title,
-                'body' => $body,
-                'data' => [...$data, 'type' => $type, 'audience' => 'admin'],
-                'type' => $type,
-            ]);
-            $notifications[] = $notification;
+        // Satu email salinan untuk seluruh admin, bukan satu per admin.
+        $notifications = NotificationEmailCopy::withoutAutoDispatch(function () use ($admins, $type, $title, $body, $data): array {
+            $notifications = [];
+            foreach ($admins as $admin) {
+                $notification = Notification::query()->create([
+                    'user_id' => $admin->getKey(),
+                    'title' => $title,
+                    'body' => $body,
+                    'data' => [...$data, 'type' => $type, 'audience' => 'admin'],
+                    'type' => $type,
+                ]);
+                $notifications[] = $notification;
 
-            DB::afterCommit(function () use ($notification): void {
-                try {
-                    $this->bus->dispatch(new SendPushNotificationJob($notification));
-                } catch (Throwable $exception) {
-                    Log::error('Admin push dispatch failed', [
-                        'notification_id' => $notification->getKey(),
-                        'exception' => $exception,
-                    ]);
-                    Notification::query()
-                        ->whereKey($notification->getKey())
-                        ->whereNull('sent_at')
-                        ->update(['failed_at' => now()]);
-                }
-            });
-        }
+                DB::afterCommit(function () use ($notification): void {
+                    try {
+                        $this->bus->dispatch(new SendPushNotificationJob($notification));
+                    } catch (Throwable $exception) {
+                        Log::error('Admin push dispatch failed', [
+                            'notification_id' => $notification->getKey(),
+                            'exception' => $exception,
+                        ]);
+                        Notification::query()
+                            ->whereKey($notification->getKey())
+                            ->whereNull('sent_at')
+                            ->update(['failed_at' => now()]);
+                    }
+                });
+            }
+
+            return $notifications;
+        });
+
+        NotificationEmailCopy::dispatchFor(array_map(
+            static fn (Notification $notification): string => (string) $notification->getKey(),
+            $notifications
+        ));
 
         return $notifications;
     }

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Salinan email untuk setiap notifikasi in-app/push (pelanggan maupun admin) ke alamat pada `NOTIFICATION_EMAIL_COPY` (`config/notification_email.php`). `NotificationObserver` mengantrekan `SendNotificationEmailCopyJob` di queue worker setelah commit; broadcast dan fan-out admin dikirim sebagai satu email ringkasan (`NotificationCopyMail`, template `mail.notifications.copy`). Kegagalan email tidak mengubah status push. Transport produksi: SMTP Gmail + App Password tanpa biaya (revisi 8 September 2026).
 - Halaman web publik bertoken `GET/POST /booking-servis/{public_token}` untuk PIC cabang memperbarui status booking servis Toyota (menunggu → diproses → selesai) tanpa login; kolom `toyota_service_bookings.public_token` dan field `status_update_url` pada resource booking (revisi 4 September 2026).
 - Simulasi kredit cepat ACC: `config/credit_acc.php` (rate card dari lembar kerja Simulasi_ACC), `AccCreditCalculator`, `GET /api/v1/credit/quick/rate-card`, `POST /api/v1/credit/quick`; hasil tersimpan sebagai `CreditSimulation` dan memberi notifikasi in-app + push ke semua admin aktif (`AdminNotificationService`).
 - Kolom `credit_programs.unit_key` dan `image_path` (unggah gambar unit di Filament), seed empat unit rekomendasi demo (Veloz Hybrid, Zenix Hybrid, Innova Reborn, Raize); `GET /appraisals/{appraisal}/upgrade-options` kini memilih unit berdasarkan rentang harga appraisal.
