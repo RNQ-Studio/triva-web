@@ -4,10 +4,13 @@ use App\Http\Controllers\Api\UserExcelController;
 use App\Http\Controllers\Api\V1\AdminAppraisalController;
 use App\Http\Controllers\Api\V1\AdminBodyPaintController;
 use App\Http\Controllers\Api\V1\AdminCreditSimulationController;
+use App\Http\Controllers\Api\V1\AdminInfoPopupController;
 use App\Http\Controllers\Api\V1\AdminMenuUsageStatisticsController;
 use App\Http\Controllers\Api\V1\AdminOtoxpertBookingController;
+use App\Http\Controllers\Api\V1\AdminPartnerLogoController;
 use App\Http\Controllers\Api\V1\AdminPlayStoreInstallsController;
 use App\Http\Controllers\Api\V1\AdminToyotaServiceBookingController;
+use App\Http\Controllers\Api\V1\AdminToyotaServicePackageController;
 use App\Http\Controllers\Api\V1\AdminUserController;
 use App\Http\Controllers\Api\V1\AdminUserDemographicsController;
 use App\Http\Controllers\Api\V1\AdminVisitStatisticsController;
@@ -25,10 +28,12 @@ use App\Http\Controllers\Api\V1\CreditSimulationController;
 use App\Http\Controllers\Api\V1\EmailVerificationController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\HomeBannerController;
+use App\Http\Controllers\Api\V1\InfoPopupController;
 use App\Http\Controllers\Api\V1\MenuUsageController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OtoxpertController;
 use App\Http\Controllers\Api\V1\OtpController;
+use App\Http\Controllers\Api\V1\PartnerLogoController;
 use App\Http\Controllers\Api\V1\PasswordResetController;
 use App\Http\Controllers\Api\V1\PromotionController;
 use App\Http\Controllers\Api\V1\QuoteController;
@@ -123,6 +128,10 @@ Route::prefix('v1')->group(function (): void {
     Route::get('banners', [HomeBannerController::class, 'index'])
         ->middleware('throttle:60,1');
     Route::get('sales-contacts', [SalesContactController::class, 'index'])
+        ->middleware('throttle:60,1');
+    Route::get('info-popups', [InfoPopupController::class, 'index'])
+        ->middleware('throttle:60,1');
+    Route::get('partner-logos', [PartnerLogoController::class, 'index'])
         ->middleware('throttle:60,1');
     Route::get('promotions', [PromotionController::class, 'index'])
         ->middleware('throttle:60,1');
@@ -300,6 +309,15 @@ Route::prefix('v1')->group(function (): void {
 
         Route::prefix('admin/toyota-service')->group(function (): void {
             Route::get('options', [AdminToyotaServiceBookingController::class, 'options']);
+            Route::prefix('packages')->group(function (): void {
+                Route::get('/', [AdminToyotaServicePackageController::class, 'index']);
+                Route::post('/', [AdminToyotaServicePackageController::class, 'store'])
+                    ->middleware('throttle:30,1');
+                Route::patch('{package}', [AdminToyotaServicePackageController::class, 'update'])
+                    ->middleware('throttle:30,1');
+                Route::delete('{package}', [AdminToyotaServicePackageController::class, 'destroy'])
+                    ->middleware('throttle:30,1');
+            });
             Route::prefix('bookings')->group(function (): void {
                 Route::get('/', [AdminToyotaServiceBookingController::class, 'index']);
                 Route::get('{booking}', [AdminToyotaServiceBookingController::class, 'show']);
@@ -377,6 +395,28 @@ Route::prefix('v1')->group(function (): void {
                 '{simulation}',
                 [AdminCreditSimulationController::class, 'show'],
             );
+        });
+
+        // Konten beranda dari Admin Panel aplikasi. Pembaruan memakai POST
+        // karena form unggah gambar dikirim sebagai multipart.
+        Route::prefix('admin/info-popups')->group(function (): void {
+            Route::get('/', [AdminInfoPopupController::class, 'index']);
+            Route::post('/', [AdminInfoPopupController::class, 'store'])
+                ->middleware('throttle:30,1');
+            Route::post('{infoPopup}', [AdminInfoPopupController::class, 'update'])
+                ->middleware('throttle:30,1');
+            Route::delete('{infoPopup}', [AdminInfoPopupController::class, 'destroy'])
+                ->middleware('throttle:30,1');
+        });
+
+        Route::prefix('admin/partner-logos')->group(function (): void {
+            Route::get('/', [AdminPartnerLogoController::class, 'index']);
+            Route::post('/', [AdminPartnerLogoController::class, 'store'])
+                ->middleware('throttle:30,1');
+            Route::post('{partnerLogo}', [AdminPartnerLogoController::class, 'update'])
+                ->middleware('throttle:30,1');
+            Route::delete('{partnerLogo}', [AdminPartnerLogoController::class, 'destroy'])
+                ->middleware('throttle:30,1');
         });
 
         Route::prefix('admin/users')->group(function (): void {

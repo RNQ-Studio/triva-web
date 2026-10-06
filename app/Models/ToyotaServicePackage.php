@@ -27,6 +27,8 @@ use Spatie\Activitylog\Traits\LogsActivity;
  * @property Carbon $effective_from
  * @property Carbon|null $effective_to
  * @property string $source_reference
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  */
 class ToyotaServicePackage extends Model
 {

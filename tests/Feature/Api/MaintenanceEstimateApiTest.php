@@ -75,6 +75,44 @@ class MaintenanceEstimateApiTest extends TestCase
             ->assertJsonPath('data.packages', []);
     }
 
+    public function test_available_models_list_effective_model_specific_packages(): void
+    {
+        $this->package(km: 10000, parts: 650000, labor: 350000);
+        $this->package(km: 10000, parts: 700000, labor: 400000, model: 'raize');
+        $this->package(km: 20000, parts: 900000, labor: 450000, model: 'Avanza');
+        $this->package(km: 30000, parts: 900000, labor: 450000, model: 'Raize');
+        $this->package(km: 40000, parts: 900000, labor: 450000, model: 'Avanza');
+        ToyotaServicePackage::factory()->create([
+            'code' => 'nonaktif',
+            'vehicle_model' => 'Calya',
+            'is_active' => false,
+        ]);
+        ToyotaServicePackage::factory()->create([
+            'code' => 'kedaluwarsa',
+            'vehicle_model' => 'Agya',
+            'effective_from' => '2020-01-01',
+            'effective_to' => '2020-12-31',
+        ]);
+
+        $this->getJson('/api/v1/toyota-service/maintenance-estimate')
+            ->assertOk()
+            ->assertJsonPath('data.available_models', ['Avanza', 'Raize']);
+    }
+
+    public function test_the_vehicle_model_is_trimmed_before_matching(): void
+    {
+        $this->package(km: 10000, parts: 650000, labor: 350000);
+        $this->package(km: 10000, parts: 1200000, labor: 600000, model: 'Avanza');
+
+        $this->getJson(
+            '/api/v1/toyota-service/maintenance-estimate'
+            .'?mileage=9000&vehicle_model='.urlencode('  Avanza  '),
+        )
+            ->assertOk()
+            ->assertJsonPath('data.vehicle_model', 'Avanza')
+            ->assertJsonPath('data.recommended.vehicle_model', 'Avanza');
+    }
+
     public function test_an_implausible_mileage_is_rejected(): void
     {
         $this->getJson('/api/v1/toyota-service/maintenance-estimate?mileage=-5')

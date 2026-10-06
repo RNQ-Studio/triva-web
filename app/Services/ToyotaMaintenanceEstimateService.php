@@ -19,11 +19,17 @@ class ToyotaMaintenanceEstimateService
      *     vehicle_model: string|null,
      *     mileage: int|null,
      *     recommended: array<string, mixed>|null,
-     *     packages: list<array<string, mixed>>
+     *     packages: list<array<string, mixed>>,
+     *     available_models: list<string>
      * }
      */
     public function estimate(?string $vehicleModel, ?int $mileage): array
     {
+        $vehicleModel = $vehicleModel === null ? null : trim($vehicleModel);
+        if ($vehicleModel === '') {
+            $vehicleModel = null;
+        }
+
         $packages = $this->packagesFor($vehicleModel);
 
         return [
@@ -34,7 +40,32 @@ class ToyotaMaintenanceEstimateService
                 ->map(fn (ToyotaServicePackage $package): array => $this->present($package))
                 ->values()
                 ->all(),
+            'available_models' => $this->availableModels(),
         ];
+    }
+
+    /**
+     * Model yang punya paket khusus, sebagai saran isian model di aplikasi
+     * supaya nama yang diketik pelanggan cocok dengan tabel budget admin.
+     *
+     * @return list<string>
+     */
+    private function availableModels(): array
+    {
+        return ToyotaServicePackage::query()
+            ->effective()
+            ->whereNotNull('vehicle_model')
+            ->distinct()
+            ->pluck('vehicle_model')
+            ->map(fn (mixed $model): string => trim((string) $model))
+            ->filter(fn (string $model): bool => $model !== '')
+            // Urutan byte mendahulukan huruf kapital, jadi dari varian
+            // "Raize"/"raize" yang dipertahankan adalah tulisan rapinya.
+            ->sort(fn (string $a, string $b): int => strcmp($a, $b))
+            ->unique(fn (string $model): string => Str::lower($model))
+            ->sort(fn (string $a, string $b): int => strnatcasecmp($a, $b))
+            ->values()
+            ->all();
     }
 
     /**
